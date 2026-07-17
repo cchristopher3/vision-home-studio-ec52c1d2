@@ -73,6 +73,7 @@ export const KITCHEN_CATEGORIES: CategoryDef[] = [
   { id: "backsplash", label: "Kitchen Backsplash", group: "surfaces" },
   { id: "cabinets", label: "Kitchen Cabinets", group: "cabinetry" },
   { id: "countertops", label: "Kitchen Countertops", group: "surfaces" },
+  { id: "flooring", label: "Kitchen Flooring", group: "surfaces" },
   { id: "sink", label: "Kitchen Sink", group: "fixtures" },
   { id: "faucet", label: "Kitchen Faucet", group: "fixtures" },
   { id: "cooktopBacksplash", label: "Cooktop Accent Backsplash", group: "surfaces" },
@@ -90,6 +91,7 @@ export const KITCHEN_CATEGORIES: CategoryDef[] = [
   { id: "wallOven", label: "Wall Oven", group: "appliances" },
   { id: "refrigerator", label: "Refrigerator", group: "appliances" },
 ];
+
 
 export const BATHROOM_CATEGORIES: CategoryDef[] = [
   { id: "vanity", label: "Vanity", group: "cabinetry" },
