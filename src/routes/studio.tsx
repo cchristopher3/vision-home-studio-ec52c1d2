@@ -67,7 +67,7 @@ function StudioPage() {
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <div className="hidden sm:flex items-center rounded-full border border-border bg-card p-1">
+          <div className="flex items-center rounded-full border border-border bg-card p-1">
             <RoomToggle active={room === "kitchen"} onClick={() => setRoom("kitchen")}>
               <ChefHat className="h-3.5 w-3.5" /> Kitchen
             </RoomToggle>
@@ -84,7 +84,7 @@ function StudioPage() {
           <RoomPreview room={room} selections={selections} className="aspect-[4/3] lg:aspect-[16/10]" />
 
           <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+            <div className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <div className="min-w-0">
                 <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Running upgrade total</div>
                 <div className="mt-1 font-display text-3xl sm:text-4xl leading-none">
@@ -94,7 +94,7 @@ function StudioPage() {
                   {Object.keys(selections).length} selections · {countUpgrades(selections)} upgrades
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 justify-end">
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Button variant="ghost" size="sm" onClick={resetSelections} className="gap-1.5">
                   <RotateCcw className="h-3.5 w-3.5" /> Reset
                 </Button>
