@@ -24,7 +24,7 @@ export function RoomPreview({
   const paint = productById(selections[paintKey]);
   const accent =
     room === "kitchen"
-      ? productById(selections["hardware"])
+      ? productById(selections["faucet"])
       : productById(selections["faucets"]);
 
   return (
