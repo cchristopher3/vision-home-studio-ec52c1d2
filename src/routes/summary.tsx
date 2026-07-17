@@ -4,10 +4,12 @@ import { useStudio } from "@/lib/store";
 import {
   BATHROOM_CATEGORIES,
   BUILDERS,
+  CATALOG_META,
   COMMUNITIES,
   FLOOR_PLANS,
   KITCHEN_CATEGORIES,
   formatMoney,
+  priceFor,
   productById,
   totalFor,
 } from "@/lib/catalog";
@@ -26,9 +28,10 @@ export const Route = createFileRoute("/summary")({
 });
 
 function SummaryPage() {
-  const { room, selections, builderId, communityId, floorPlanId } = useStudio();
+  const { room, selections, builderId, communityId, floorPlanId, kitchenLayout } = useStudio();
   const cats = room === "kitchen" ? KITCHEN_CATEGORIES : BATHROOM_CATEGORIES;
-  const total = totalFor(selections);
+  const layoutForTotal = room === "kitchen" ? kitchenLayout : "standard";
+  const total = totalFor(selections, layoutForTotal);
   const builder = BUILDERS.find((b) => b.id === builderId)!;
   const community = COMMUNITIES.find((c) => c.id === communityId)!;
   const plan = FLOOR_PLANS.find((p) => p.id === floorPlanId)!;
@@ -67,11 +70,13 @@ function SummaryPage() {
                     <li key={c.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3">
                       <div className="h-9 w-9 rounded-md border border-border" style={{ background: p.swatch }} />
                       <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{c.label}</div>
+                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          {c.label}{p.code ? ` · ${p.code}` : ""}
+                        </div>
                         <div className="truncate text-sm">{p.name} <span className="text-muted-foreground">· {p.manufacturer}</span></div>
                       </div>
                       <div className="text-sm shrink-0 text-right">
-                        {p.included ? <span className="text-muted-foreground">Included</span> : <span>+{formatMoney(p.price)}</span>}
+                        {p.included ? <span className="text-muted-foreground">Included</span> : <span>+{formatMoney(priceFor(p, layoutForTotal))}</span>}
                       </div>
                     </li>
                   );
@@ -105,7 +110,7 @@ function SummaryPage() {
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground px-1">
-              Demonstration prototype · Actions are illustrative placeholders.
+              {CATALOG_META.disclaimer}
             </p>
           </aside>
         </div>

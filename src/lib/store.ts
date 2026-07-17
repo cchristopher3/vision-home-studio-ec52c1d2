@@ -1,11 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { defaultSelections, type Room } from "./catalog";
+import { defaultSelections, type KitchenLayout, type Room } from "./catalog";
+
+export type SelectionFilter = "all" | "included" | "upgrade" | "optional";
 
 export interface SavedDesign {
   id: string;
   name: string;
   room: Room;
+  kitchenLayout: KitchenLayout;
   builderId: string;
   communityId: string;
   floorPlanId: string;
@@ -18,16 +21,24 @@ interface StudioState {
   communityId: string;
   floorPlanId: string;
   room: Room;
+  kitchenLayout: KitchenLayout;
   selections: Record<string, string>;
   savedDesigns: SavedDesign[];
   compareIds: [string | null, string | null];
+  activeCategory: string | null;
+  searchQuery: string;
+  statusFilter: SelectionFilter;
   setSetup: (v: { builderId: string; communityId: string; floorPlanId: string; room: Room }) => void;
   setRoom: (room: Room) => void;
+  setKitchenLayout: (layout: KitchenLayout) => void;
   selectProduct: (category: string, productId: string) => void;
   resetSelections: () => void;
   saveDesign: (name: string) => SavedDesign;
   deleteDesign: (id: string) => void;
   setCompare: (a: string | null, b: string | null) => void;
+  setActiveCategory: (id: string | null) => void;
+  setSearchQuery: (q: string) => void;
+  setStatusFilter: (f: SelectionFilter) => void;
 }
 
 export const useStudio = create<StudioState>()(
@@ -37,20 +48,30 @@ export const useStudio = create<StudioState>()(
       communityId: "calebs-creek",
       floorPlanId: "riley",
       room: "kitchen",
-      selections: defaultSelections("kitchen"),
+      kitchenLayout: "standard",
+      selections: defaultSelections("kitchen", "standard"),
       savedDesigns: [],
       compareIds: [null, null],
-      setSetup: (v) => set({ ...v, selections: defaultSelections(v.room) }),
-      setRoom: (room) => set({ room, selections: defaultSelections(room) }),
+      activeCategory: null,
+      searchQuery: "",
+      statusFilter: "all",
+      setSetup: (v) => set({ ...v, selections: defaultSelections(v.room, get().kitchenLayout) }),
+      setRoom: (room) => set({ room, selections: defaultSelections(room, get().kitchenLayout), activeCategory: null }),
+      setKitchenLayout: (layout) =>
+        set((s) => ({
+          kitchenLayout: layout,
+          selections: s.room === "kitchen" ? defaultSelections("kitchen", layout) : s.selections,
+        })),
       selectProduct: (category, productId) =>
         set((s) => ({ selections: { ...s.selections, [category]: productId } })),
-      resetSelections: () => set((s) => ({ selections: defaultSelections(s.room) })),
+      resetSelections: () => set((s) => ({ selections: defaultSelections(s.room, s.kitchenLayout) })),
       saveDesign: (name) => {
         const s = get();
         const design: SavedDesign = {
           id: `d-${Date.now()}`,
           name: name || `Design ${s.savedDesigns.length + 1}`,
           room: s.room,
+          kitchenLayout: s.kitchenLayout,
           builderId: s.builderId,
           communityId: s.communityId,
           floorPlanId: s.floorPlanId,
@@ -65,7 +86,10 @@ export const useStudio = create<StudioState>()(
         compareIds: [s.compareIds[0] === id ? null : s.compareIds[0], s.compareIds[1] === id ? null : s.compareIds[1]],
       })),
       setCompare: (a, b) => set({ compareIds: [a, b] }),
+      setActiveCategory: (id) => set({ activeCategory: id }),
+      setSearchQuery: (q) => set({ searchQuery: q }),
+      setStatusFilter: (f) => set({ statusFilter: f }),
     }),
-    { name: "homevision-studio-v1" }
+    { name: "homevision-studio-v2" }
   )
 );
