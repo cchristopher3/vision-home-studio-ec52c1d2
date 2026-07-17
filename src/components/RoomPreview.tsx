@@ -85,6 +85,11 @@ function MaskedRegion({
   if (product.included && !debug) return null;
 
   const color = debug ? layer.debugColor : extractHex(product.swatch);
+  // The bundled masks are fully opaque PNGs where the editable region is
+  // encoded as WHITE luminance on a BLACK background (alpha = 255 throughout).
+  // CSS mask-image defaults to alpha mode, which would treat the entire
+  // rectangle as visible. Force luminance mode so only the white pixels
+  // receive the overlay.
   const maskStyle: React.CSSProperties = {
     position: "absolute",
     inset: 0,
@@ -99,9 +104,12 @@ function MaskedRegion({
     maskRepeat: "no-repeat",
     WebkitMaskPosition: "center",
     maskPosition: "center",
+    // Use luminance (white = show, black = hide) instead of alpha.
+    maskMode: "luminance",
+    WebkitMaskSourceType: "luminance",
     pointerEvents: "none",
     transition: "background-color 400ms ease, opacity 400ms ease",
-  };
+  } as React.CSSProperties;
   return (
     <div
       key={`${layer.id}-${product.id}-${debug ? "d" : "n"}`}
