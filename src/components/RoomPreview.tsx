@@ -16,23 +16,72 @@ export function roomImage(room: Room, selections: Record<string, string>) {
   return tone === "dark" ? bathMoody : bathClassic;
 }
 
-// Category IDs that meaningfully contribute a color/finish tone to the room.
-const KITCHEN_WASHES: { key: string; blend: string; opacity: number }[] = [
-  { key: "cabinets", blend: "multiply", opacity: 0.18 },
-  { key: "islandFinish", blend: "multiply", opacity: 0.12 },
-  { key: "perimeterFinish", blend: "multiply", opacity: 0.08 },
-  { key: "countertops", blend: "overlay", opacity: 0.1 },
-  { key: "backsplash", blend: "soft-light", opacity: 0.18 },
-  { key: "faucet", blend: "overlay", opacity: 0.08 },
+/**
+ * Each layer is an independent visual surface driven by ONE category.
+ * When that category's selection changes, only that layer re-keys and
+ * fades in — every other layer stays mounted and untouched.
+ */
+type LayerKind = "wash" | "band";
+type Layer = {
+  id: string;              // stable layer id (Cabinets, Countertop, …)
+  categoryKey: string;     // selection key it listens to
+  kind: LayerKind;
+  blend: React.CSSProperties["mixBlendMode"];
+  opacity: number;
+  // band-only:
+  top?: string;
+  height?: string;
+};
+
+const KITCHEN_LAYERS: Layer[] = [
+  { id: "wallPaint",   categoryKey: "wallPaint",       kind: "band", blend: "multiply",   opacity: 0.22, top: "0%",   height: "34%" },
+  { id: "backsplash",  categoryKey: "backsplash",      kind: "band", blend: "soft-light", opacity: 0.55, top: "34%",  height: "18%" },
+  { id: "countertops", categoryKey: "countertops",     kind: "band", blend: "multiply",   opacity: 0.65, top: "52%",  height: "6%"  },
+  { id: "cabinets",    categoryKey: "cabinets",        kind: "wash", blend: "multiply",   opacity: 0.22 },
+  { id: "perimeter",   categoryKey: "perimeterFinish", kind: "wash", blend: "multiply",   opacity: 0.10 },
+  { id: "islandFinish",categoryKey: "islandFinish",    kind: "band", blend: "multiply",   opacity: 0.55, top: "62%",  height: "22%" },
+  { id: "islandTrim",  categoryKey: "islandTrim",      kind: "band", blend: "overlay",    opacity: 0.6,  top: "84%",  height: "3%"  },
+  { id: "flooring",    categoryKey: "flooring",        kind: "band", blend: "multiply",   opacity: 0.5,  top: "87%",  height: "13%" },
+  { id: "sink",        categoryKey: "sink",            kind: "band", blend: "overlay",    opacity: 0.45, top: "56%",  height: "4%"  },
+  { id: "faucet",      categoryKey: "faucet",          kind: "wash", blend: "overlay",    opacity: 0.06 },
+  { id: "appliances",  categoryKey: "refrigerator",    kind: "band", blend: "overlay",    opacity: 0.35, top: "30%",  height: "28%" },
 ];
 
-const BATH_WASHES: { key: string; blend: string; opacity: number }[] = [
-  { key: "wallPaint", blend: "multiply", opacity: 0.15 },
-  { key: "vanity", blend: "multiply", opacity: 0.15 },
-  { key: "countertop", blend: "overlay", opacity: 0.1 },
-  { key: "showerTile", blend: "soft-light", opacity: 0.18 },
-  { key: "faucets", blend: "overlay", opacity: 0.08 },
+const BATH_LAYERS: Layer[] = [
+  { id: "wallPaint",  categoryKey: "wallPaint",  kind: "wash", blend: "multiply",   opacity: 0.18 },
+  { id: "vanity",     categoryKey: "vanity",     kind: "band", blend: "multiply",   opacity: 0.55, top: "58%", height: "26%" },
+  { id: "countertop", categoryKey: "countertop", kind: "band", blend: "multiply",   opacity: 0.65, top: "54%", height: "5%"  },
+  { id: "showerTile", categoryKey: "showerTile", kind: "band", blend: "soft-light", opacity: 0.5,  top: "10%", height: "40%" },
+  { id: "floorTile",  categoryKey: "floorTile",  kind: "band", blend: "multiply",   opacity: 0.5,  top: "84%", height: "16%" },
+  { id: "faucets",    categoryKey: "faucets",    kind: "wash", blend: "overlay",    opacity: 0.08 },
 ];
+
+function LayerNode({ layer, productId, swatch }: { layer: Layer; productId: string; swatch: string }) {
+  // key={productId} → only this layer remounts (and fades in) when its
+  // own selection changes; sibling layers keep their existing DOM.
+  const style: React.CSSProperties =
+    layer.kind === "wash"
+      ? { position: "absolute", inset: 0, background: swatch, mixBlendMode: layer.blend, opacity: layer.opacity }
+      : {
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: layer.top,
+          height: layer.height,
+          background: swatch,
+          mixBlendMode: layer.blend,
+          opacity: layer.opacity,
+        };
+  return (
+    <div
+      key={productId}
+      className="pointer-events-none animate-fade-in"
+      style={{ ...style, animationDuration: "400ms" }}
+      data-layer={layer.id}
+      data-product={productId}
+    />
+  );
+}
 
 export function RoomPreview({
   room,
@@ -44,10 +93,9 @@ export function RoomPreview({
   className?: string;
 }) {
   const img = roomImage(room, selections);
-  const washes = room === "kitchen" ? KITCHEN_WASHES : BATH_WASHES;
+  const layers = room === "kitchen" ? KITCHEN_LAYERS : BATH_LAYERS;
   const categories = room === "kitchen" ? KITCHEN_CATEGORIES : BATHROOM_CATEGORIES;
 
-  // Every selected product becomes a live chip in the palette bar.
   const chips = categories
     .map((c) => {
       const p = productById(selections[c.id]);
@@ -59,56 +107,35 @@ export function RoomPreview({
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-border bg-muted ${className}`}>
       <div className="relative aspect-[16/10] w-full">
+        {/* Cross-fade the base image when dominant tone flips. */}
         <img
+          key={img}
           src={img}
           alt={`${room} preview`}
-          className="absolute inset-0 h-full w-full object-cover transition-all duration-700"
+          className="absolute inset-0 h-full w-full object-cover animate-fade-in"
+          style={{ animationDuration: "500ms" }}
           width={1600}
           height={1000}
         />
-        {washes.map((w) => {
-          const p = productById(selections[w.key]);
-          if (!p?.swatch) return null;
+
+        {layers.map((layer) => {
+          const productId = selections[layer.categoryKey];
+          const product = productById(productId);
+          if (!product?.swatch) return null;
           return (
-            <div
-              key={w.key}
-              className="pointer-events-none absolute inset-0 transition-opacity duration-500"
-              style={{ background: p.swatch, mixBlendMode: w.blend as React.CSSProperties["mixBlendMode"], opacity: w.opacity }}
-            />
+            // Outer wrapper stays mounted; inner LayerNode re-keys on productId
+            // so only the affected layer fades on change.
+            <div key={layer.id} className="pointer-events-none absolute inset-0">
+              <LayerNode layer={layer} productId={productId} swatch={product.swatch} />
+            </div>
           );
         })}
-
-        {/* Countertop band — horizontal stripe to hint at surface */}
-        {(() => {
-          const ctKey = room === "kitchen" ? "countertops" : "countertop";
-          const ct = productById(selections[ctKey]);
-          if (!ct?.swatch) return null;
-          return (
-            <div
-              className="pointer-events-none absolute left-0 right-0 top-[52%] h-[6%] opacity-70 mix-blend-multiply transition-all duration-500"
-              style={{ background: ct.swatch }}
-            />
-          );
-        })()}
-
-        {/* Backsplash band */}
-        {(() => {
-          const bsp = productById(selections[room === "kitchen" ? "backsplash" : "showerTile"]);
-          if (!bsp?.swatch) return null;
-          return (
-            <div
-              className="pointer-events-none absolute left-0 right-0 top-[36%] h-[16%] opacity-40 mix-blend-soft-light transition-all duration-500"
-              style={{ background: bsp.swatch }}
-            />
-          );
-        })()}
 
         <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-background/85 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur">
           Live preview · updates with every selection
         </div>
       </div>
 
-      {/* Live selection palette — every category chip updates on selection */}
       {chips.length > 0 && (
         <div className="border-t border-border bg-card/60 p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
@@ -118,11 +145,12 @@ export function RoomPreview({
             {chips.map(({ catLabel, product }) => (
               <div
                 key={product.category}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-background/80 pl-1 pr-2 py-1 text-[10px]"
+                className="flex items-center gap-1.5 rounded-full border border-border bg-background/80 pl-1 pr-2 py-1 text-[10px] animate-fade-in"
                 title={`${catLabel}: ${product.name}`}
               >
                 <span
-                  className="inline-block h-4 w-4 rounded-full border border-border shrink-0"
+                  key={product.id}
+                  className="inline-block h-4 w-4 rounded-full border border-border shrink-0 animate-fade-in"
                   style={{ background: product.swatch }}
                 />
                 <span className="text-muted-foreground">{catLabel}:</span>
