@@ -67,7 +67,7 @@ function StudioPage() {
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <div className="hidden sm:flex items-center rounded-full border border-border bg-card p-1">
+          <div className="flex items-center rounded-full border border-border bg-card p-1">
             <RoomToggle active={room === "kitchen"} onClick={() => setRoom("kitchen")}>
               <ChefHat className="h-3.5 w-3.5" /> Kitchen
             </RoomToggle>
