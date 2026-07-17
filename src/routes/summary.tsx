@@ -4,10 +4,12 @@ import { useStudio } from "@/lib/store";
 import {
   BATHROOM_CATEGORIES,
   BUILDERS,
+  CATALOG_META,
   COMMUNITIES,
   FLOOR_PLANS,
   KITCHEN_CATEGORIES,
   formatMoney,
+  priceFor,
   productById,
   totalFor,
 } from "@/lib/catalog";
@@ -26,9 +28,10 @@ export const Route = createFileRoute("/summary")({
 });
 
 function SummaryPage() {
-  const { room, selections, builderId, communityId, floorPlanId } = useStudio();
+  const { room, selections, builderId, communityId, floorPlanId, kitchenLayout } = useStudio();
   const cats = room === "kitchen" ? KITCHEN_CATEGORIES : BATHROOM_CATEGORIES;
-  const total = totalFor(selections);
+  const layoutForTotal = room === "kitchen" ? kitchenLayout : "standard";
+  const total = totalFor(selections, layoutForTotal);
   const builder = BUILDERS.find((b) => b.id === builderId)!;
   const community = COMMUNITIES.find((c) => c.id === communityId)!;
   const plan = FLOOR_PLANS.find((p) => p.id === floorPlanId)!;
