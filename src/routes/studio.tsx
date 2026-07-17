@@ -84,7 +84,7 @@ function StudioPage() {
           <RoomPreview room={room} selections={selections} className="aspect-[4/3] lg:aspect-[16/10]" />
 
           <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+            <div className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <div className="min-w-0">
                 <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Running upgrade total</div>
                 <div className="mt-1 font-display text-3xl sm:text-4xl leading-none">
