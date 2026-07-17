@@ -94,7 +94,7 @@ function StudioPage() {
                   {Object.keys(selections).length} selections · {countUpgrades(selections)} upgrades
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 justify-end">
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Button variant="ghost" size="sm" onClick={resetSelections} className="gap-1.5">
                   <RotateCcw className="h-3.5 w-3.5" /> Reset
                 </Button>
