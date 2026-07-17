@@ -110,7 +110,7 @@ function SummaryPage() {
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground px-1">
-              Demonstration prototype · Actions are illustrative placeholders.
+              {CATALOG_META.disclaimer}
             </p>
           </aside>
         </div>
