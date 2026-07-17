@@ -522,6 +522,8 @@ const bathroomProducts: Product[] = [
 export const PRODUCTS: Product[] = [
   ...cabinetProducts,
   ...countertopProducts,
+  ...kitchenFlooringProducts,
+
   ...sinkProducts,
   ...faucetProducts,
   ...backsplashProducts,
