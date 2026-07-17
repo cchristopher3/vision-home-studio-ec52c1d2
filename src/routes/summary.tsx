@@ -70,11 +70,13 @@ function SummaryPage() {
                     <li key={c.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3">
                       <div className="h-9 w-9 rounded-md border border-border" style={{ background: p.swatch }} />
                       <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{c.label}</div>
+                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          {c.label}{p.code ? ` · ${p.code}` : ""}
+                        </div>
                         <div className="truncate text-sm">{p.name} <span className="text-muted-foreground">· {p.manufacturer}</span></div>
                       </div>
                       <div className="text-sm shrink-0 text-right">
-                        {p.included ? <span className="text-muted-foreground">Included</span> : <span>+{formatMoney(p.price)}</span>}
+                        {p.included ? <span className="text-muted-foreground">Included</span> : <span>+{formatMoney(priceFor(p, layoutForTotal))}</span>}
                       </div>
                     </li>
                   );
