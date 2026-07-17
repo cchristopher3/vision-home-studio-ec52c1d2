@@ -483,7 +483,16 @@ const fridgeProducts = makeSimple("refrigerator", "REF", "Whirlpool / KitchenAid
   { key: "built-in-42", name: 'Built-In 42" Panel-Ready Refrigerator', price: 6850, notes: "Requires matching cabinet panels and enclosure." },
 ]);
 
+// ---------- KITCHEN FLOORING (illustrative demo data)
+const kitchenFlooringProducts: Product[] = [
+  { id: "kfl-oak-natural", code: "KFL-001", category: "flooring", room: "kitchen", name: "Natural Oak Plank", configuration: '7" wide plank', manufacturer: "Shaw Floors", finish: "Matte", status: "included", included: true, price: 0, tone: "light", swatch: cabSwatch("#c9a877", "#8f6b3f"), effectiveDate: CATALOG_META.effectiveDate, active: true, imagePlaceholder: "flooring-oak-natural.jpg", builderNotes: "Included natural oak — illustrative demo finish." },
+  { id: "kfl-oak-whitewash", code: "KFL-002", category: "flooring", room: "kitchen", name: "Whitewashed Oak", configuration: '7" wide plank', manufacturer: "Shaw Floors", finish: "Matte", status: "upgrade", included: false, price: 1450, tone: "light", swatch: cabSwatch("#e6dcc7", "#b8a988"), effectiveDate: CATALOG_META.effectiveDate, active: true, imagePlaceholder: "flooring-oak-white.jpg" },
+  { id: "kfl-walnut", code: "KFL-003", category: "flooring", room: "kitchen", name: "Warm Walnut Plank", configuration: '9" wide plank', manufacturer: "Mohawk", finish: "Matte", status: "upgrade", included: false, price: 2650, tone: "dark", swatch: cabSwatch("#6b4a2a", "#3a2411"), effectiveDate: CATALOG_META.effectiveDate, active: true, imagePlaceholder: "flooring-walnut.jpg" },
+  { id: "kfl-charcoal", code: "KFL-004", category: "flooring", room: "kitchen", name: "Charcoal Slate Plank", configuration: '7" wide plank', manufacturer: "Karndean", finish: "Textured", status: "optional", included: false, price: 3200, tone: "dark", swatch: cabSwatch("#3a3a3d", "#141416"), effectiveDate: CATALOG_META.effectiveDate, active: true, imagePlaceholder: "flooring-charcoal.jpg", builderNotes: "Optional dark plank — verify with community design guidelines." },
+];
+
 // ---------- BATHROOM (kept from prior demo, lightly tagged with new fields)
+
 const bathroomProducts: Product[] = [
   { id: "van-white", code: "VAN-001", category: "vanity", room: "bathroom", name: "White Shaker Vanity", manufacturer: CAB_MFR, finish: "Pure White", status: "included", included: true, price: 0, tone: "light", swatch: cabSwatch("#f7f5f0", "#e8e4dd"), effectiveDate: CATALOG_META.effectiveDate, active: true },
   { id: "van-gray", code: "VAN-002", category: "vanity", room: "bathroom", name: "Harbor Gray Vanity", manufacturer: CAB_MFR, finish: "Harbor Gray", status: "upgrade", included: false, price: 1450, tone: "light", swatch: cabSwatch("#a8adb2", "#7d8388"), effectiveDate: CATALOG_META.effectiveDate, active: true },
