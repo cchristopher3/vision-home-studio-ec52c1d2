@@ -183,12 +183,12 @@ const countertopProducts: Product[] = [1, 2, 3, 4, 5, 6].map<Product>((lvl, i) =
   };
 });
 
-const sinkProducts: Product[] = [
-  { key: "ss-under", name: "Stainless Steel Undermount", price: 0, status: "included", swatch: ["#dfe3e7", "#9aa0a6"], tone: "light" as Tone, restrictions: undefined },
-  { key: "6040-under", name: "60/40 Undermount Sink", price: 200, status: "upgrade", swatch: ["#d1d5d9", "#8a8f94"], tone: "light" as Tone },
-  { key: "porcelain-farm", name: '35.5" Porcelain Farm Style Sink', price: 1500, status: "upgrade", swatch: ["#f7f5ef", "#d8d3c6"], tone: "light" as Tone, restrictions: 'Requires 36" or 42" cabinet configuration.' },
-  { key: "stainless-farm", name: '32.5" Stainless Farm Style Sink', price: 1250, status: "upgrade", swatch: ["#c6cbd0", "#6d7378"], tone: "light" as Tone, restrictions: 'Requires 36" or 42" cabinet configuration.' },
-].map<Product>((s, i) => ({
+const sinkProducts: Product[] = ([
+  { key: "ss-under", name: "Stainless Steel Undermount", price: 0, status: "included", swatch: ["#dfe3e7", "#9aa0a6"], tone: "light", restrictions: undefined },
+  { key: "6040-under", name: "60/40 Undermount Sink", price: 200, status: "upgrade", swatch: ["#d1d5d9", "#8a8f94"], tone: "light" },
+  { key: "porcelain-farm", name: '35.5" Porcelain Farm Style Sink', price: 1500, status: "upgrade", swatch: ["#f7f5ef", "#d8d3c6"], tone: "light", restrictions: 'Requires 36" or 42" cabinet configuration.' },
+  { key: "stainless-farm", name: '32.5" Stainless Farm Style Sink', price: 1250, status: "upgrade", swatch: ["#c6cbd0", "#6d7378"], tone: "light", restrictions: 'Requires 36" or 42" cabinet configuration.' },
+] as { key: string; name: string; price: number; status: ProductStatus; swatch: [string, string]; tone: Tone; restrictions?: string }[]).map<Product>((s, i) => ({
   id: `sink-${s.key}`,
   code: `SNK-${String(i + 1).padStart(3, "0")}`,
   category: "sink",
