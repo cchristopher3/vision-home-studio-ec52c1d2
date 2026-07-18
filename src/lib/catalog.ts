@@ -573,7 +573,9 @@ const bathroomProducts: Product[] = [
 export const PRODUCTS: Product[] = [
   ...cabinetProducts,
   ...countertopProducts,
+  ...islandCounterProducts,
   ...kitchenFlooringProducts,
+
 
   ...sinkProducts,
   ...faucetProducts,
