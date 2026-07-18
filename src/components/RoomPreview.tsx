@@ -403,7 +403,7 @@ function BathroomPreview({
         </div>
       </div>
 
-      {chips.length > 0 && (
+      {!hideChips && chips.length > 0 && (
         <div className="border-t border-border bg-card/60 p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Your selections
@@ -434,14 +434,26 @@ export function RoomPreview({
   room,
   selections,
   className = "",
+  hideChips,
+  enableMaskQA,
+  changeLabel,
 }: {
   room: Room;
   selections: Record<string, string>;
   className?: string;
+  hideChips?: boolean;
+  enableMaskQA?: boolean;
+  changeLabel?: string;
 }) {
   return room === "kitchen" ? (
-    <KitchenPreview selections={selections} className={className} />
+    <KitchenPreview
+      selections={selections}
+      className={className}
+      hideChips={hideChips}
+      enableMaskQA={enableMaskQA}
+      changeLabel={changeLabel}
+    />
   ) : (
-    <BathroomPreview selections={selections} className={className} />
+    <BathroomPreview selections={selections} className={className} hideChips={hideChips} />
   );
 }
