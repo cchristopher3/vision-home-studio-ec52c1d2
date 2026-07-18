@@ -173,8 +173,10 @@ function KitchenPreview({
   changeLabel?: string;
 }) {
   const [debug, setDebug] = useState(false);
-  const [showBase, setShowBase] = useState(false);
+  const [view, setView] = useState<PreviewView>("material");
   const [failed, setFailed] = useState<Set<string>>(new Set());
+  const perimeterVisualFinishId = useStudio((s) => s.perimeterVisualFinishId);
+  const islandVisualFinishId = useStudio((s) => s.islandVisualFinishId);
 
   const changedCount = useMemo(
     () =>
@@ -199,34 +201,48 @@ function KitchenPreview({
     return { catLabel: c.label, product: p };
   }).filter((x): x is { catLabel: string; product: Product } => !!x);
 
+  const showBase = view === "before";
+  const isMaterial = view === "material";
+
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-border bg-muted ${className}`}>
-      <div className="relative w-full" style={{ aspectRatio: "1320 / 848" }}>
-        <img
-          src={kitchenBase}
-          alt="Kitchen base scene"
-          className="absolute inset-0 h-full w-full object-cover"
-          width={1320}
-          height={848}
-        />
-
-        {KITCHEN_MASK_LAYERS.map((layer) => {
-          if (failed.has(layer.id)) return null;
-          const product = layer.resolveProduct(selections);
-          if (!product) return null;
-          return (
-            <MaskedRegion
-              key={layer.id}
-              layer={layer}
-              product={product}
-              showBase={showBase}
-              debug={debug}
-              onError={markFailed}
+      <div className="relative w-full" style={{ aspectRatio: isMaterial ? "1200 / 760" : "1320 / 848" }}>
+        {isMaterial ? (
+          <div className="absolute inset-0 animate-fade-in bg-[#f5efe3]">
+            <VectorKitchen
+              selections={selections}
+              perimeterVisualFinishId={perimeterVisualFinishId}
+              islandVisualFinishId={islandVisualFinishId}
             />
-          );
-        })}
+          </div>
+        ) : (
+          <>
+            <img
+              src={kitchenBase}
+              alt="Kitchen photo reference"
+              className="absolute inset-0 h-full w-full object-cover"
+              width={1320}
+              height={848}
+            />
+            {KITCHEN_MASK_LAYERS.map((layer) => {
+              if (failed.has(layer.id)) return null;
+              const product = layer.resolveProduct(selections);
+              if (!product) return null;
+              return (
+                <MaskedRegion
+                  key={layer.id}
+                  layer={layer}
+                  product={product}
+                  showBase={showBase}
+                  debug={debug}
+                  onError={markFailed}
+                />
+              );
+            })}
+          </>
+        )}
 
-        {debug && (
+        {debug && !isMaterial && (
           <div className="pointer-events-none absolute left-3 top-12 flex flex-col gap-1">
             <div className="rounded-full bg-background/85 px-2 py-1 text-[10px] uppercase tracking-widest text-foreground backdrop-blur">
               Mask QA — region legend
@@ -243,7 +259,7 @@ function KitchenPreview({
           </div>
         )}
 
-        {failed.size > 0 && (
+        {failed.size > 0 && !isMaterial && (
           <div className="pointer-events-none absolute left-3 bottom-3 rounded-md bg-background/85 px-2 py-1 text-[10px] text-muted-foreground backdrop-blur">
             Preview layer unavailable
           </div>
@@ -259,18 +275,10 @@ function KitchenPreview({
           </span>
         </div>
 
-        <div className="absolute right-3 top-3 flex gap-1.5">
-          <button
-            onClick={() => setShowBase((v) => !v)}
-            className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition ${
-              showBase ? "bg-foreground text-background" : "bg-background/90 text-foreground hover:bg-background"
-            }`}
-            aria-pressed={showBase}
-            aria-label={showBase ? "Show your selections" : "Show original photograph"}
-          >
-            {showBase ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-            {showBase ? "Before" : "Selections"}
-          </button>
+        <div className="absolute right-3 top-3 flex gap-1">
+          <ViewButton active={view === "material"} onClick={() => setView("material")} icon={<Sparkles className="h-3 w-3" />} label="Material" />
+          <ViewButton active={view === "photo"} onClick={() => setView("photo")} icon={<Camera className="h-3 w-3" />} label="Photo" />
+          <ViewButton active={view === "before"} onClick={() => setView("before")} icon={<Eye className="h-3 w-3" />} label="Before" />
           {enableMaskQA && (
             <button
               onClick={() => setDebug((v) => !v)}
@@ -285,11 +293,12 @@ function KitchenPreview({
           )}
         </div>
 
-
         <div className="pointer-events-none absolute bottom-3 right-3 hidden rounded-full bg-background/85 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur sm:block">
-          {showBase ? "Original photograph" : "Live preview · masked layers"}
+          {view === "before" ? "Before · base finishes" : view === "photo" ? "Photo reference · masked layers" : "Material preview · vector scene"}
         </div>
       </div>
+
+
 
       {!hideChips && chips.length > 0 && (
         <div className="border-t border-border bg-card/80 p-3">
