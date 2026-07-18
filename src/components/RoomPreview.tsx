@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Eye, EyeOff, Layers3 } from "lucide-react";
 import bathClassic from "@/assets/bath-classic.jpg";
 import bathMoody from "@/assets/bath-moody.jpg";
 import kitchenBase from "@/assets/kitchen-true-base.jpg";
@@ -85,6 +86,9 @@ function MaskedRegion({
   if (product.included && !debug) return null;
 
   const color = debug ? layer.debugColor : extractHex(product.swatch);
+  const texture = !debug && product.textureImageUrl;
+  const overlay = !debug && product.overlayImageUrl;
+  const visual = product.visual;
   // The bundled masks are fully opaque PNGs where the editable region is
   // encoded as WHITE luminance on a BLACK background (alpha = 255 throughout).
   // CSS mask-image defaults to alpha mode, which would treat the entire
@@ -94,8 +98,12 @@ function MaskedRegion({
     position: "absolute",
     inset: 0,
     backgroundColor: color,
-    mixBlendMode: debug ? "normal" : layer.blend,
-    opacity: debug ? 1 : layer.opacity,
+    backgroundImage: texture ? `url(${texture})` : undefined,
+    backgroundRepeat: texture ? "repeat" : undefined,
+    backgroundSize: texture ? `${Math.max(25, (visual?.scale ?? 1) * 100)}px auto` : undefined,
+    transform: visual?.rotation ? `rotate(${visual.rotation}deg) scale(1.04)` : undefined,
+    mixBlendMode: debug ? "normal" : visual?.blendMode ?? layer.blend,
+    opacity: debug ? 1 : visual?.opacity ?? layer.opacity,
     WebkitMaskImage: `url(${layer.maskUrl})`,
     maskImage: `url(${layer.maskUrl})`,
     WebkitMaskSize: "100% 100%",
@@ -117,6 +125,15 @@ function MaskedRegion({
       className="animate-fade-in"
       data-layer={layer.id}
     >
+      {overlay && (
+        <img
+          src={overlay}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-fill"
+          onError={() => onError(layer.id)}
+        />
+      )}
       {/* Preload / detect failure via hidden img. */}
       <img
         src={layer.maskUrl}
@@ -139,6 +156,13 @@ function KitchenPreview({
   const [debug, setDebug] = useState(false);
   const [showBase, setShowBase] = useState(false);
   const [failed, setFailed] = useState<Set<string>>(new Set());
+  const changedCount = useMemo(
+    () => KITCHEN_MASK_LAYERS.filter((layer) => {
+      const product = productById(selections[layer.categoryKey]);
+      return product && !product.included;
+    }).length,
+    [selections],
+  );
 
   const markFailed = (id: string) =>
     setFailed((prev) => {
@@ -202,43 +226,48 @@ function KitchenPreview({
           </div>
         )}
 
+        <div className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1.5 text-[10px] font-medium uppercase tracking-widest text-foreground shadow-sm backdrop-blur">
+          {changedCount ? `${changedCount} visual change${changedCount === 1 ? "" : "s"}` : "Included design"}
+        </div>
+
         <div className="absolute right-3 top-3 flex gap-1.5">
           <button
             onClick={() => setShowBase((v) => !v)}
-            className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest backdrop-blur transition ${
+            className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-widest shadow-sm backdrop-blur transition ${
               showBase ? "bg-foreground text-background" : "bg-background/85 text-muted-foreground hover:text-foreground"
             }`}
             aria-pressed={showBase}
           >
+            {showBase ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
             {showBase ? "Before" : "Selections"}
           </button>
           <button
             onClick={() => setDebug((v) => !v)}
-            className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest backdrop-blur transition ${
+            className={`hidden min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[10px] uppercase tracking-widest backdrop-blur transition sm:inline-flex ${
               debug ? "bg-foreground text-background" : "bg-background/85 text-muted-foreground hover:text-foreground"
             }`}
             aria-pressed={debug}
             title="Toggle mask debug view"
           >
-            Masks
+            <Layers3 className="h-3 w-3" /> Masks
           </button>
         </div>
 
-        <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-background/85 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur">
+        <div className="pointer-events-none absolute bottom-3 right-3 hidden rounded-full bg-background/85 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur sm:block">
           {showBase ? "Original photograph" : "Live preview · masked layers"}
         </div>
       </div>
 
       {chips.length > 0 && (
-        <div className="border-t border-border bg-card/60 p-3">
+        <div className="border-t border-border bg-card/80 p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Your selections
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
             {chips.map(({ catLabel, product }) => (
               <div
                 key={product.category}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-background/80 pl-1 pr-2 py-1 text-[10px]"
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background/80 pl-1 pr-2 py-1 text-[10px]"
                 title={`${catLabel}: ${product.name}`}
               >
                 <span

@@ -29,6 +29,17 @@ export interface Product {
   price: number;
   tone: Tone;
   swatch: string;
+  /** Optional tileable material texture used by the masked room renderer. */
+  textureImageUrl?: string;
+  /** Optional full-region transparent overlay for builder-approved renders. */
+  overlayImageUrl?: string;
+  /** Per-product renderer tuning. Values fall back to the region defaults. */
+  visual?: {
+    opacity?: number;
+    blendMode?: "normal" | "multiply" | "overlay" | "soft-light" | "color";
+    scale?: number;
+    rotation?: number;
+  };
   layouts?: KitchenLayout[]; // kitchen only. If omitted, available in all.
   /** Per-layout price overrides (kitchen only). */
   priceByLayout?: Partial<Record<KitchenLayout, number>>;

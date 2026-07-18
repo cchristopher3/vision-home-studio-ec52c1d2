@@ -1,4 +1,4 @@
-import { Check, Info, Lock } from "lucide-react";
+import { Check, Eye, Info, Lock } from "lucide-react";
 import type { Product } from "@/lib/catalog";
 import { formatMoney } from "@/lib/catalog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -61,6 +61,11 @@ export function ProductSwatch({
           >
             {priceLabel}
           </span>
+          {(product.textureImageUrl || product.overlayImageUrl) && (
+            <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-foreground backdrop-blur">
+              <Eye className="h-3 w-3" /> Preview ready
+            </span>
+          )}
         </div>
         <div className="p-3">
           <div className="flex items-start justify-between gap-2">
@@ -92,7 +97,7 @@ export function ProductSwatch({
       <Popover>
         <PopoverTrigger asChild>
           <button
-            className="absolute bottom-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-background/90 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-foreground"
+            className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-background/95 text-muted-foreground shadow-sm transition hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100"
             aria-label="Product details"
             onClick={(e) => e.stopPropagation()}
           >
