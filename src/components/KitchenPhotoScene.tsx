@@ -1,10 +1,16 @@
-// Photorealistic kitchen preview: single base photo plus a shared-viewBox
-// SVG overlay that applies finishes ONLY inside hand-traced clip paths.
-// Every finish is a controlled color/multiply layer confined to its clip —
-// there is no full-frame tint, and no PNG mask is consulted.
+// Photorealistic kitchen preview built on kitchen-scene-v2.jpg.
+// The scene was authored specifically for material swapping: straight-on
+// symmetric composition, uninterrupted upper/lower perimeter cabinet runs,
+// clearly separated perimeter + island countertops, broad backsplash,
+// large flooring plane, and minimal integrated appliances.
+//
+// Because the camera is nearly orthogonal, every editable region can be
+// expressed with a small number of clean rectangles/polygons whose edges
+// align precisely with the underlying photograph. Every finish is confined
+// to its clip region — no full-frame tint, no shared regions.
 
-import { useEffect, useMemo } from "react";
-import kitchenBase from "@/assets/kitchen-true-base.jpg";
+import { useMemo } from "react";
+import kitchenBase from "@/assets/kitchen-scene-v2.jpg";
 import {
   renderStoneElements,
   stoneById,
@@ -13,18 +19,15 @@ import {
 } from "@/lib/stoneTextures";
 import { productById } from "@/lib/catalog";
 
+const VB_W = 1600;
+const VB_H = 912;
 
-const VB_W = 1320;
-const VB_H = 848;
+// ---------- Region definitions ----------
+// Coordinates are in the photograph's own pixel space (1600x912) and were
+// validated by sampling the actual image. They deliberately under-cover the
+// visible surface rather than bleed onto appliances, walls, or hardware.
 
-// ---------- Region trace definitions ----------
-// Every path is expressed in the photo's own pixel space (viewBox 1320x848).
-// A region is marked `pending` when its polygon cannot yet be traced with
-// confidence; in that case the overlay is skipped for that region and the
-// original photograph is preserved (with a "refinement in progress" note),
-// while pricing and selection remain fully live.
-
-type RegionId =
+export type RegionId =
   | "perimeterUppers"
   | "perimeterLowers"
   | "islandBase"
@@ -36,123 +39,64 @@ type RegionId =
 export interface RegionDef {
   id: RegionId;
   label: string;
-  /** Multiple sub-paths — kept separate so complex surfaces are traced with
-   *  many small polygons that avoid appliances, stools, sinks and openings. */
   paths: string[];
-  /** Even-odd lets sub-paths cut holes for range/sink cutouts. */
   fillRule?: "evenodd" | "nonzero";
-  /** Skip painting when true; original photo shows through. */
-  pending?: boolean;
-  /** Debug fill color. */
   debugColor: string;
 }
-
-// NOTE: These traces are conservative best-effort hand-traces read against
-// src/assets/kitchen-true-base.jpg (1320×848). They intentionally under-cover
-// rather than bleed into appliances, stools, sink, faucet, lights, ceiling,
-// walls or windows. Refine per-path as tighter traces become available.
 
 export const REGIONS: RegionDef[] = [
   {
     id: "perimeterUppers",
     label: "Perimeter Uppers",
     debugColor: "rgba(56, 189, 248, 0.55)",
-    paths: [
-      // Pantry uppers (left wall, angled)
-      "M 90 220 L 230 210 L 230 370 L 90 380 Z",
-      // Back-wall uppers, left of microwave — two door groups
-      "M 290 275 L 445 260 L 445 405 L 290 410 Z",
-      "M 445 260 L 585 250 L 585 405 L 445 405 Z",
-      // Above-microwave narrow bridge (skips the microwave face)
-      "M 610 232 L 720 228 L 720 300 L 610 300 Z",
-      // Back-wall uppers, right of microwave — several door groups
-      "M 735 232 L 870 224 L 870 400 L 735 402 Z",
-      "M 870 224 L 995 220 L 995 400 L 870 400 Z",
-      "M 995 220 L 1105 218 L 1105 400 L 995 400 Z",
-    ],
-    fillRule: "nonzero",
-  },
-  {
-    id: "perimeterLowers",
-    label: "Perimeter Lowers",
-    debugColor: "rgba(20, 184, 166, 0.55)",
-    paths: [
-      // Back-wall lowers left of range — doors/drawers below counter
-      "M 305 505 L 445 500 L 445 615 L 305 620 Z",
-      "M 445 500 L 585 495 L 585 615 L 445 615 Z",
-      // Back-wall lowers right of range
-      "M 740 500 L 870 495 L 870 615 L 740 618 Z",
-      "M 870 495 L 985 492 L 985 615 L 870 615 Z",
-    ],
-    fillRule: "nonzero",
-  },
-  {
-    id: "islandBase",
-    label: "Island Base",
-    debugColor: "rgba(249, 115, 22, 0.55)",
-    // Right portion of island wood base only — leaves the stool zone (left front)
-    // uncovered so stool legs/seats remain untouched.
-    paths: [
-      "M 455 650 L 605 615 L 600 795 L 455 810 Z",
-    ],
-    fillRule: "nonzero",
-  },
-  {
-    id: "perimeterCounter",
-    label: "Perimeter Counter",
-    debugColor: "rgba(163, 230, 53, 0.55)",
-    // Back-leg slim edge + right-leg slab (with sink cutout via even-odd).
-    paths: [
-      // Back leg top surface strip (thin band showing on top of lowers)
-      "M 285 442 L 605 435 L 605 490 L 285 492 Z",
-      "M 730 435 L 990 428 L 990 480 L 730 482 Z",
-      // Right leg slab — bounded so it never covers cabinets or floor.
-      "M 985 428 L 1320 460 L 1320 715 L 860 700 L 860 615 L 985 615 Z",
-      // Sink cutout on the right leg
-      "M 1015 555 L 1230 555 L 1230 680 L 1015 680 Z",
-    ],
-    fillRule: "evenodd",
-  },
-
-  {
-    id: "islandCounter",
-    label: "Island Counter",
-    debugColor: "rgba(250, 204, 21, 0.6)",
-    // Marble slab top + front edge band; leaves stools untouched.
-    paths: [
-      "M 245 610 L 605 455 L 630 585 L 240 640 Z",
-    ],
-    fillRule: "nonzero",
+    // Between the fridge column (left) and the double-oven column (right).
+    paths: ["M 262 168 L 1330 168 L 1330 360 L 262 360 Z"],
   },
   {
     id: "backsplash",
     label: "Backsplash",
     debugColor: "rgba(244, 114, 182, 0.55)",
-    // Narrow band between uppers-bottom and counter-top, split around microwave.
+    paths: ["M 262 372 L 1330 372 L 1330 480 L 262 480 Z"],
+  },
+  {
+    id: "perimeterCounter",
+    label: "Perimeter Counter",
+    debugColor: "rgba(163, 230, 53, 0.6)",
+    paths: ["M 262 486 L 1330 486 L 1330 505 L 262 505 Z"],
+  },
+  {
+    id: "perimeterLowers",
+    label: "Perimeter Lowers",
+    debugColor: "rgba(20, 184, 166, 0.55)",
+    // Only the two side slivers of perimeter lowers remain visible around
+    // the island; the center is blocked by the island by design.
     paths: [
-      "M 295 410 L 585 405 L 585 440 L 295 445 Z",
-      "M 735 405 L 1050 400 L 1050 432 L 735 435 Z",
+      "M 262 510 L 338 510 L 338 800 L 262 800 Z",
+      "M 1268 510 L 1330 510 L 1330 800 L 1268 800 Z",
     ],
-    fillRule: "nonzero",
+  },
+  {
+    id: "islandCounter",
+    label: "Island Countertop",
+    debugColor: "rgba(250, 204, 21, 0.6)",
+    // Slightly wider at the back edge than at the base to match the slab.
+    paths: ["M 310 512 L 1300 512 L 1305 582 L 305 582 Z"],
+  },
+  {
+    id: "islandBase",
+    label: "Island Base",
+    debugColor: "rgba(249, 115, 22, 0.55)",
+    paths: ["M 342 586 L 1264 586 L 1264 800 L 342 800 Z"],
   },
   {
     id: "flooring",
     label: "Flooring",
     debugColor: "rgba(239, 68, 68, 0.55)",
-    // Open floor area between island (right side) and right-leg cabinets.
-    // Left-front stool zone is deliberately excluded.
-    paths: [
-      // Central floor between island and right cabinets
-      "M 620 700 L 855 700 L 855 848 L 620 848 Z",
-      // Narrow far-left strip near doorway (avoids stools)
-      "M 0 760 L 90 755 L 90 848 L 0 848 Z",
-    ],
-    fillRule: "nonzero",
+    paths: ["M 0 808 L 1600 808 L 1600 912 L 0 912 Z"],
   },
 ];
 
-
-// ---------- Overlay component ----------
+// ---------- Helpers ----------
 
 function extractHex(swatch: string | undefined): string | undefined {
   if (!swatch) return undefined;
@@ -166,9 +110,9 @@ interface Props {
   islandVisualFinishId?: string;
   /** When true, no finishes are applied; users see the untouched photo. */
   before?: boolean;
-  /** Show translucent debug fills instead of realistic compositing. */
+  /** Show translucent debug fills (dev only). */
   debug?: boolean;
-  /** Per-region debug visibility. */
+  /** Per-region debug visibility (dev only). */
   debugVisible?: Partial<Record<RegionId, boolean>>;
 }
 
@@ -180,11 +124,16 @@ export function KitchenPhotoScene({
   debug,
   debugVisible,
 }: Props) {
-  // Product resolution — cabinets drives all perimeter cabinet paths.
+  // ------------ Product resolution ------------
+  // Cabinets drive every perimeter cabinet surface (uppers + lowers).
+  // Island base follows cabinets unless islandFinish is set to a non-match
+  // upgrade. Perimeter counter texture is independent from island counter.
   const cabinetsProduct = productById(selections.cabinets);
-  const perimFinishProduct = productById(selections.perimeterFinish);
+  const perimFinishExplicit = productById(selections.perimeterFinish);
   const perimeterFinishProduct =
-    perimFinishProduct && !perimFinishProduct.included ? perimFinishProduct : cabinetsProduct;
+    perimFinishExplicit && !perimFinishExplicit.included
+      ? perimFinishExplicit
+      : cabinetsProduct;
 
   const islandFinishExplicit = productById(selections.islandFinish);
   const islandFinishProduct =
@@ -195,34 +144,42 @@ export function KitchenPhotoScene({
   const backsplashProduct = productById(selections.backsplash);
   const flooringProduct = productById(selections.flooring);
 
-  const cabinetColor = cabinetsProduct && !cabinetsProduct.included ? extractHex(cabinetsProduct.swatch) : undefined;
-  const perimeterFinishColor = perimeterFinishProduct && !perimeterFinishProduct.included
-    ? extractHex(perimeterFinishProduct.swatch)
-    : undefined;
-  const islandBaseColor = islandFinishProduct && !islandFinishProduct.included
-    ? extractHex(islandFinishProduct.swatch)
-    : undefined;
-  const backsplashColor = backsplashProduct && !backsplashProduct.included
-    ? extractHex(backsplashProduct.swatch)
-    : undefined;
-  const flooringColor = flooringProduct && !flooringProduct.included
-    ? extractHex(flooringProduct.swatch)
-    : undefined;
+  const cabinetColor =
+    cabinetsProduct && !cabinetsProduct.included
+      ? extractHex(cabinetsProduct.swatch)
+      : undefined;
+  const perimeterFinishColor =
+    perimeterFinishProduct && !perimeterFinishProduct.included
+      ? extractHex(perimeterFinishProduct.swatch)
+      : undefined;
+  const islandBaseColor =
+    islandFinishProduct && !islandFinishProduct.included
+      ? extractHex(islandFinishProduct.swatch)
+      : undefined;
+  const backsplashColor =
+    backsplashProduct && !backsplashProduct.included
+      ? extractHex(backsplashProduct.swatch)
+      : undefined;
+  const flooringColor =
+    flooringProduct && !flooringProduct.included
+      ? extractHex(flooringProduct.swatch)
+      : undefined;
 
-  // Stone finishes — always defined via defaults; only paint when perimeter
-  // or island countertop is an upgrade OR when the user has explicitly chosen
-  // a non-default visual finish. Otherwise leave the photo pristine.
   const perimCounterProduct = productById(selections.countertops);
   const islandCounterExplicit = productById(selections.islandCounter);
+
   const perimCounterPaint =
     (perimCounterProduct && !perimCounterProduct.included) ||
-    (perimeterVisualFinishId && perimeterVisualFinishId !== DEFAULT_PERIMETER_FINISH_ID);
+    (perimeterVisualFinishId &&
+      perimeterVisualFinishId !== DEFAULT_PERIMETER_FINISH_ID);
   const islandCounterPaint =
     (islandCounterExplicit && islandCounterExplicit.id !== "isl-ct-match") ||
     (islandVisualFinishId && islandVisualFinishId !== DEFAULT_ISLAND_FINISH_ID);
 
-  const perimStone = stoneById(perimeterVisualFinishId) ?? stoneById(DEFAULT_PERIMETER_FINISH_ID)!;
-  const islandStone = stoneById(islandVisualFinishId) ?? stoneById(DEFAULT_ISLAND_FINISH_ID)!;
+  const perimStone =
+    stoneById(perimeterVisualFinishId) ?? stoneById(DEFAULT_PERIMETER_FINISH_ID)!;
+  const islandStone =
+    stoneById(islandVisualFinishId) ?? stoneById(DEFAULT_ISLAND_FINISH_ID)!;
 
   const regionById = useMemo(() => {
     const m: Record<string, RegionDef> = {};
@@ -230,74 +187,33 @@ export function KitchenPhotoScene({
     return m;
   }, []);
 
-  const visibleRegions = (id: RegionId) => debugVisible?.[id] !== false;
+  const visibleRegion = (id: RegionId) => debugVisible?.[id] !== false;
 
-  // In "before" mode, paint nothing.
-  const applyCabinets = !before && !!cabinetColor && !regionById.perimeterUppers.pending;
-  const applyLowers = !before && !!perimeterFinishColor && !regionById.perimeterLowers.pending;
-  const applyIslandBase = !before && !!islandBaseColor && !regionById.islandBase.pending;
-  const applyPerimCounter = !before && perimCounterPaint && !regionById.perimeterCounter.pending;
-  const applyIslandCounter = !before && islandCounterPaint && !regionById.islandCounter.pending;
-  const applyBacksplash = !before && !!backsplashColor && !regionById.backsplash.pending;
-  const applyFlooring = !before && !!flooringColor && !regionById.flooring.pending;
+  const applyCabinets = !before && !!cabinetColor;
+  const applyLowers = !before && !!perimeterFinishColor;
+  const applyIslandBase = !before && !!islandBaseColor;
+  const applyPerimCounter = !before && perimCounterPaint;
+  const applyIslandCounter = !before && islandCounterPaint;
+  const applyBacksplash = !before && !!backsplashColor;
+  const applyFlooring = !before && !!flooringColor;
 
-  const pendingRegions = REGIONS.filter((r) => r.pending).map((r) => r.label);
+  // ---------- Compositing primitives ----------
+  // Every finish is applied as (a) a guaranteed-visible normal-blend color
+  // layer at controlled opacity and (b) a confined multiply layer that adds
+  // depth. Both layers are clipped to the region's exact shape so nothing
+  // bleeds onto adjacent surfaces. Because the base image is bright and
+  // neutral, multiply darkens correctly for dark selections while the base
+  // opacity ensures light selections remain visible.
 
-  // Dev-only assertions/logging under debug=1. Never shown to normal buyers.
-  useEffect(() => {
-    if (!debug) return;
-    // eslint-disable-next-line no-console
-    console.log("[KitchenPhotoScene:debug]", {
-      selections,
-      resolved: {
-        cabinets: cabinetsProduct?.id,
-        perimeterFinishSource: perimeterFinishProduct?.id,
-        islandFinishSource: islandFinishProduct?.id,
-        backsplash: backsplashProduct?.id,
-        flooring: flooringProduct?.id,
-        perimCounter: perimCounterProduct?.id,
-        islandCounter: islandCounterExplicit?.id,
-      },
-      colors: {
-        cabinetColor,
-        perimeterFinishColor,
-        islandBaseColor,
-        backsplashColor,
-        flooringColor,
-      },
-      stones: { perim: perimStone.id, island: islandStone.id },
-      visualFinishIds: { perimeterVisualFinishId, islandVisualFinishId },
-      flags: {
-        applyCabinets,
-        applyLowers,
-        applyIslandBase,
-        applyPerimCounter,
-        applyIslandCounter,
-        applyBacksplash,
-        applyFlooring,
-        before: !!before,
-      },
-    });
-  }, [
-    debug, selections, cabinetColor, perimeterFinishColor, islandBaseColor,
-    backsplashColor, flooringColor, perimeterVisualFinishId, islandVisualFinishId,
-    applyCabinets, applyLowers, applyIslandBase, applyPerimCounter,
-    applyIslandCounter, applyBacksplash, applyFlooring, before,
-    cabinetsProduct, perimeterFinishProduct, islandFinishProduct,
-    backsplashProduct, flooringProduct, perimCounterProduct,
-    islandCounterExplicit, perimStone, islandStone,
-  ]);
-
-  // Painted-cabinet compositing: guaranteed-visible normal-blend color at
-  // controlled opacity, then a confined multiply pass for depth. mix-blend-mode
-  // on SVG groups blends only within the SVG's own stacking context (against
-  // transparent), so we CANNOT depend on it as the sole visible layer.
   const paintedCabinet = (clipId: string, color: string, key: string) => (
     <g key={key}>
-      <g clipPath={`url(#${clipId})`} style={{ opacity: 0.66 }}>
+      <g clipPath={`url(#${clipId})`} style={{ opacity: 0.62 }}>
         <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
       </g>
-      <g clipPath={`url(#${clipId})`} style={{ mixBlendMode: "multiply", opacity: 0.35 }}>
+      <g
+        clipPath={`url(#${clipId})`}
+        style={{ mixBlendMode: "multiply", opacity: 0.4 }}
+      >
         <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
       </g>
     </g>
@@ -313,7 +229,10 @@ export function KitchenPhotoScene({
       <g clipPath={`url(#${clipId})`} style={{ opacity: baseOpacity }}>
         <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
       </g>
-      <g clipPath={`url(#${clipId})`} style={{ mixBlendMode: "multiply", opacity: 0.28 }}>
+      <g
+        clipPath={`url(#${clipId})`}
+        style={{ mixBlendMode: "multiply", opacity: 0.3 }}
+      >
         <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
       </g>
     </g>
@@ -325,12 +244,14 @@ export function KitchenPhotoScene({
     key: string,
   ) => (
     <g key={key}>
-      <g clipPath={`url(#${clipId})`} style={{ opacity: 0.92 }}>
+      <g clipPath={`url(#${clipId})`} style={{ opacity: 0.94 }}>
         {renderStoneElements(stone as never, VB_W, VB_H, `${key}-tex`)}
       </g>
-      {/* Restrained highlight to preserve photographic sheen — clipped so it
-          NEVER touches other regions and never cancels the finish. */}
-      <g clipPath={`url(#${clipId})`} style={{ mixBlendMode: "soft-light", opacity: 0.22 }}>
+      {/* Restrained highlight preserves photographic sheen. */}
+      <g
+        clipPath={`url(#${clipId})`}
+        style={{ mixBlendMode: "soft-light", opacity: 0.2 }}
+      >
         <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
       </g>
     </g>
@@ -358,14 +279,14 @@ export function KitchenPhotoScene({
         aria-hidden
       >
         <defs>
-          {/* IMPORTANT: <clipPath> children must be shape elements — not a
-              wrapping <g>. Chromium silently ignores paths nested inside a
-              <g> inside <clipPath>, which caused the entire preview to render
-              unclipped/invisible. Emit each path directly here. */}
           {REGIONS.map((r) => {
             const rule = r.fillRule ?? "nonzero";
             return (
-              <clipPath id={`clip-${r.id}`} key={r.id} clipPathUnits="userSpaceOnUse">
+              <clipPath
+                id={`clip-${r.id}`}
+                key={r.id}
+                clipPathUnits="userSpaceOnUse"
+              >
                 {r.paths.map((d, i) => (
                   <path
                     key={i}
@@ -380,92 +301,58 @@ export function KitchenPhotoScene({
           })}
         </defs>
 
-
         {debug ? (
           <>
-            {REGIONS.filter((r) => visibleRegions(r.id)).map((r) => (
-              <g key={r.id}>
-                <RegionPathGroup region={r} fill={r.debugColor} />
-              </g>
-            ))}
+            {REGIONS.filter((r) => visibleRegion(r.id)).map((r) => {
+              const rule = r.fillRule ?? "nonzero";
+              return (
+                <g key={r.id} fillRule={rule} clipRule={rule}>
+                  {r.paths.map((d, i) => (
+                    <path
+                      key={i}
+                      d={d}
+                      fill={r.debugColor}
+                      fillRule={rule}
+                      clipRule={rule}
+                    />
+                  ))}
+                </g>
+              );
+            })}
           </>
         ) : (
           <>
-            {applyCabinets && cabinetColor &&
+            {applyCabinets &&
+              cabinetColor &&
               paintedCabinet("clip-perimeterUppers", cabinetColor, "uppers")}
-            {applyLowers && perimeterFinishColor &&
-              paintedCabinet("clip-perimeterLowers", perimeterFinishColor, "lowers")}
-            {applyIslandBase && islandBaseColor &&
+            {applyLowers &&
+              perimeterFinishColor &&
+              paintedCabinet(
+                "clip-perimeterLowers",
+                perimeterFinishColor,
+                "lowers",
+              )}
+            {applyIslandBase &&
+              islandBaseColor &&
               paintedCabinet("clip-islandBase", islandBaseColor, "islandBase")}
             {applyPerimCounter &&
               stoneSurface("clip-perimeterCounter", perimStone, "perimCounter")}
             {applyIslandCounter &&
               stoneSurface("clip-islandCounter", islandStone, "islandCounter")}
-            {applyBacksplash && backsplashColor &&
-              paintedSurface("clip-backsplash", backsplashColor, "backsplash", 0.72)}
-            {applyFlooring && flooringColor &&
+            {applyBacksplash &&
+              backsplashColor &&
+              paintedSurface(
+                "clip-backsplash",
+                backsplashColor,
+                "backsplash",
+                0.72,
+              )}
+            {applyFlooring &&
+              flooringColor &&
               paintedSurface("clip-flooring", flooringColor, "flooring", 0.62)}
           </>
         )}
-
       </svg>
-
-      {pendingRegions.length > 0 && !before && (
-        <div className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-background/85 px-2 py-1 text-[10px] text-muted-foreground backdrop-blur">
-          Preview refinement in progress · {pendingRegions.join(", ")}
-        </div>
-      )}
     </div>
   );
-}
-
-function RegionPathGroup({ region, fill }: { region: RegionDef; fill?: string }) {
-  const rule = region.fillRule ?? "nonzero";
-  return (
-    <g fillRule={rule} clipRule={rule}>
-      {region.paths.map((d, i) => (
-        <path key={i} d={d} fill={fill ?? "#000"} fillRule={rule} clipRule={rule} />
-      ))}
-    </g>
-  );
-}
-
-
-// ---------- Debug overlap check (dev aid) ----------
-
-/**
- * Report region overlaps by rasterising each region into a 1320x848 grid.
- * Purely a dev aid: call from the browser console when debugging.
- */
-export function reportRegionOverlaps(): { pair: string; overlapPixels: number }[] {
-  if (typeof document === "undefined") return [];
-  const results: { pair: string; overlapPixels: number }[] = [];
-  const grids: Record<string, Uint8Array> = {};
-  for (const r of REGIONS) {
-    const canvas = document.createElement("canvas");
-    canvas.width = VB_W;
-    canvas.height = VB_H;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) continue;
-    ctx.fillStyle = "#000";
-    for (const d of r.paths) {
-      const p = new Path2D(d);
-      ctx.fill(p, r.fillRule ?? "nonzero");
-    }
-    const img = ctx.getImageData(0, 0, VB_W, VB_H).data;
-    const g = new Uint8Array(VB_W * VB_H);
-    for (let i = 0; i < g.length; i++) g[i] = img[i * 4 + 3] > 0 ? 1 : 0;
-    grids[r.id] = g;
-  }
-  const ids = Object.keys(grids);
-  for (let i = 0; i < ids.length; i++) {
-    for (let j = i + 1; j < ids.length; j++) {
-      const a = grids[ids[i]];
-      const b = grids[ids[j]];
-      let c = 0;
-      for (let k = 0; k < a.length; k++) if (a[k] && b[k]) c++;
-      if (c > 0) results.push({ pair: `${ids[i]} ↔ ${ids[j]}`, overlapPixels: c });
-    }
-  }
-  return results;
 }

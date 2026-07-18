@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Eye, Layers3 } from "lucide-react";
+import { Eye } from "lucide-react";
 import bathClassic from "@/assets/bath-classic.jpg";
 import bathMoody from "@/assets/bath-moody.jpg";
-import kitchenBase from "@/assets/kitchen-true-base.jpg";
+import kitchenBase from "@/assets/kitchen-scene-v2.jpg";
 import {
   BATHROOM_CATEGORIES,
   KITCHEN_CATEGORIES,
@@ -11,7 +11,7 @@ import {
   type Product,
   type Room,
 } from "@/lib/catalog";
-import { KitchenPhotoScene, REGIONS } from "@/components/KitchenPhotoScene";
+import { KitchenPhotoScene } from "@/components/KitchenPhotoScene";
 import { useStudio } from "@/lib/store";
 
 export function roomImage(room: Room, selections: Record<string, string>) {
@@ -24,20 +24,14 @@ function KitchenPreview({
   selections,
   className,
   hideChips,
-  enableMaskQA,
   changeLabel,
 }: {
   selections: Record<string, string>;
   className: string;
   hideChips?: boolean;
-  enableMaskQA?: boolean;
   changeLabel?: string;
 }) {
   const [showBase, setShowBase] = useState(false);
-  const [debug, setDebug] = useState(false);
-  const [debugVisible, setDebugVisible] = useState<Record<string, boolean>>(
-    Object.fromEntries(REGIONS.map((r) => [r.id, true])),
-  );
   const perimeterVisualFinishId = useStudio((s) => s.perimeterVisualFinishId);
   const islandVisualFinishId = useStudio((s) => s.islandVisualFinishId);
 
@@ -47,9 +41,6 @@ function KitchenPreview({
     return { catLabel: c.label, product: p };
   }).filter((x): x is { catLabel: string; product: Product } => !!x);
 
-  const toggleAll = (v: boolean) =>
-    setDebugVisible(Object.fromEntries(REGIONS.map((r) => [r.id, v])));
-
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-border bg-muted ${className}`}>
       <div className="relative w-full">
@@ -58,8 +49,6 @@ function KitchenPreview({
           perimeterVisualFinishId={perimeterVisualFinishId}
           islandVisualFinishId={islandVisualFinishId}
           before={showBase}
-          debug={enableMaskQA && debug}
-          debugVisible={debugVisible}
         />
 
         <div className="absolute left-3 top-3 max-w-[70%] rounded-full bg-background/90 px-3 py-1.5 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
@@ -87,48 +76,7 @@ function KitchenPreview({
           >
             Before
           </button>
-          {enableMaskQA && (
-            <button
-              onClick={() => setDebug((v) => !v)}
-              aria-pressed={debug}
-              title="Internal QA — visualize traced regions"
-              className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[10px] uppercase tracking-widest backdrop-blur transition ${
-                debug ? "bg-foreground text-background" : "bg-background/85 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Layers3 className="h-3 w-3" /> Region QA
-            </button>
-          )}
         </div>
-
-        {enableMaskQA && debug && (
-          <div className="pointer-events-auto absolute left-3 top-14 flex flex-col gap-1 rounded-md bg-background/90 p-2 text-[10px] backdrop-blur">
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="font-semibold uppercase tracking-widest">Region QA</span>
-              <div className="flex gap-1">
-                <button className="rounded border border-border px-1.5 py-0.5" onClick={() => toggleAll(true)}>
-                  All
-                </button>
-                <button className="rounded border border-border px-1.5 py-0.5" onClick={() => toggleAll(false)}>
-                  None
-                </button>
-              </div>
-            </div>
-            {REGIONS.map((r) => (
-              <label key={r.id} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!debugVisible[r.id]}
-                  onChange={(e) =>
-                    setDebugVisible((prev) => ({ ...prev, [r.id]: e.target.checked }))
-                  }
-                />
-                <span className="h-3 w-3 rounded-sm" style={{ background: r.debugColor }} />
-                {r.label}
-              </label>
-            ))}
-          </div>
-        )}
       </div>
 
       {!hideChips && chips.length > 0 && (
@@ -282,13 +230,13 @@ export function RoomPreview({
   selections,
   className = "",
   hideChips,
-  enableMaskQA,
   changeLabel,
 }: {
   room: Room;
   selections: Record<string, string>;
   className?: string;
   hideChips?: boolean;
+  /** Deprecated: mask QA is no longer surfaced. Ignored. */
   enableMaskQA?: boolean;
   changeLabel?: string;
 }) {
@@ -297,7 +245,6 @@ export function RoomPreview({
       selections={selections}
       className={className}
       hideChips={hideChips}
-      enableMaskQA={enableMaskQA}
       changeLabel={changeLabel}
     />
   ) : (

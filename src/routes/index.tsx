@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import heroHome from "@/assets/hero-home.jpg";
-import kitchenClassic from "@/assets/kitchen-classic.jpg";
+import kitchenClassic from "@/assets/kitchen-scene-v2.jpg";
 import bathClassic from "@/assets/bath-classic.jpg";
 import { ArrowRight, Compass, Layers, Share2 } from "lucide-react";
 
