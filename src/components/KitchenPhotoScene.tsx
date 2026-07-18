@@ -3,7 +3,7 @@
 // Every finish is a controlled color/multiply layer confined to its clip —
 // there is no full-frame tint, and no PNG mask is consulted.
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import kitchenBase from "@/assets/kitchen-true-base.jpg";
 import {
   renderStoneElements,
@@ -12,6 +12,7 @@ import {
   DEFAULT_PERIMETER_FINISH_ID,
 } from "@/lib/stoneTextures";
 import { productById } from "@/lib/catalog";
+
 
 const VB_W = 1320;
 const VB_H = 848;
