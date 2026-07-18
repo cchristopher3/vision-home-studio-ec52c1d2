@@ -157,9 +157,15 @@ function MaskedRegion({
 function KitchenPreview({
   selections,
   className,
+  hideChips,
+  enableMaskQA,
+  changeLabel,
 }: {
   selections: Record<string, string>;
   className: string;
+  hideChips?: boolean;
+  enableMaskQA?: boolean;
+  changeLabel?: string;
 }) {
   const [debug, setDebug] = useState(false);
   const [showBase, setShowBase] = useState(false);
@@ -238,39 +244,49 @@ function KitchenPreview({
           </div>
         )}
 
-        <div className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1.5 text-[10px] font-medium uppercase tracking-widest text-foreground shadow-sm backdrop-blur">
-          {changedCount ? `${changedCount} visual change${changedCount === 1 ? "" : "s"}` : "Included design"}
+        <div className="absolute left-3 top-3 max-w-[70%] rounded-full bg-background/90 px-3 py-1.5 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
+          <span className="truncate">
+            {changeLabel
+              ? changeLabel
+              : changedCount
+              ? `${changedCount} visual change${changedCount === 1 ? "" : "s"}`
+              : "Included design"}
+          </span>
         </div>
 
         <div className="absolute right-3 top-3 flex gap-1.5">
           <button
             onClick={() => setShowBase((v) => !v)}
-            className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-widest shadow-sm backdrop-blur transition ${
-              showBase ? "bg-foreground text-background" : "bg-background/85 text-muted-foreground hover:text-foreground"
+            className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition ${
+              showBase ? "bg-foreground text-background" : "bg-background/90 text-foreground hover:bg-background"
             }`}
             aria-pressed={showBase}
+            aria-label={showBase ? "Show your selections" : "Show original photograph"}
           >
             {showBase ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
             {showBase ? "Before" : "Selections"}
           </button>
-          <button
-            onClick={() => setDebug((v) => !v)}
-            className={`hidden min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[10px] uppercase tracking-widest backdrop-blur transition sm:inline-flex ${
-              debug ? "bg-foreground text-background" : "bg-background/85 text-muted-foreground hover:text-foreground"
-            }`}
-            aria-pressed={debug}
-            title="Internal QA — visualize mask regions"
-          >
-            <Layers3 className="h-3 w-3" /> Mask QA
-          </button>
+          {enableMaskQA && (
+            <button
+              onClick={() => setDebug((v) => !v)}
+              className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[10px] uppercase tracking-widest backdrop-blur transition ${
+                debug ? "bg-foreground text-background" : "bg-background/85 text-muted-foreground hover:text-foreground"
+              }`}
+              aria-pressed={debug}
+              title="Internal QA — visualize mask regions"
+            >
+              <Layers3 className="h-3 w-3" /> Mask QA
+            </button>
+          )}
         </div>
+
 
         <div className="pointer-events-none absolute bottom-3 right-3 hidden rounded-full bg-background/85 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur sm:block">
           {showBase ? "Original photograph" : "Live preview · masked layers"}
         </div>
       </div>
 
-      {chips.length > 0 && (
+      {!hideChips && chips.length > 0 && (
         <div className="border-t border-border bg-card/80 p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Your selections
@@ -293,6 +309,7 @@ function KitchenPreview({
           </div>
         </div>
       )}
+
     </div>
   );
 }
@@ -344,9 +361,11 @@ function BathBandNode({ layer, productId, swatch }: { layer: BandLayer; productI
 function BathroomPreview({
   selections,
   className,
+  hideChips,
 }: {
   selections: Record<string, string>;
   className: string;
+  hideChips?: boolean;
 }) {
   const tone = dominantTone("bathroom", selections);
   const img = tone === "dark" ? bathMoody : bathClassic;
@@ -384,7 +403,7 @@ function BathroomPreview({
         </div>
       </div>
 
-      {chips.length > 0 && (
+      {!hideChips && chips.length > 0 && (
         <div className="border-t border-border bg-card/60 p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Your selections
@@ -415,14 +434,26 @@ export function RoomPreview({
   room,
   selections,
   className = "",
+  hideChips,
+  enableMaskQA,
+  changeLabel,
 }: {
   room: Room;
   selections: Record<string, string>;
   className?: string;
+  hideChips?: boolean;
+  enableMaskQA?: boolean;
+  changeLabel?: string;
 }) {
   return room === "kitchen" ? (
-    <KitchenPreview selections={selections} className={className} />
+    <KitchenPreview
+      selections={selections}
+      className={className}
+      hideChips={hideChips}
+      enableMaskQA={enableMaskQA}
+      changeLabel={changeLabel}
+    />
   ) : (
-    <BathroomPreview selections={selections} className={className} />
+    <BathroomPreview selections={selections} className={className} hideChips={hideChips} />
   );
 }
