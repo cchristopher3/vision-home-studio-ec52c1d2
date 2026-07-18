@@ -280,27 +280,41 @@ export function KitchenPhotoScene({
         ) : (
           <>
             {applyCabinets && (
-              <g clipPath="url(#clip-perimeterUppers)" style={{ mixBlendMode: "color", opacity: 0.85 }}>
-                <rect x={0} y={0} width={VB_W} height={VB_H} fill={cabinetColor} />
-              </g>
+              <>
+                <g clipPath="url(#clip-perimeterUppers)" style={{ mixBlendMode: "multiply", opacity: 0.9 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={cabinetColor} />
+                </g>
+                <g clipPath="url(#clip-perimeterUppers)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={cabinetColor} />
+                </g>
+              </>
             )}
             {applyLowers && (
-              <g clipPath="url(#clip-perimeterLowers)" style={{ mixBlendMode: "color", opacity: 0.85 }}>
-                <rect x={0} y={0} width={VB_W} height={VB_H} fill={perimeterFinishColor} />
-              </g>
+              <>
+                <g clipPath="url(#clip-perimeterLowers)" style={{ mixBlendMode: "multiply", opacity: 0.9 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={perimeterFinishColor} />
+                </g>
+                <g clipPath="url(#clip-perimeterLowers)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={perimeterFinishColor} />
+                </g>
+              </>
             )}
             {applyIslandBase && (
-              <g clipPath="url(#clip-islandBase)" style={{ mixBlendMode: "color", opacity: 0.9 }}>
-                <rect x={0} y={0} width={VB_W} height={VB_H} fill={islandBaseColor} />
-              </g>
+              <>
+                <g clipPath="url(#clip-islandBase)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={islandBaseColor} />
+                </g>
+                <g clipPath="url(#clip-islandBase)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={islandBaseColor} />
+                </g>
+              </>
             )}
             {applyPerimCounter && (
               <>
                 <g clipPath="url(#clip-perimeterCounter)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
                   {renderStoneElements(perimStone, VB_W, VB_H, `perim-${perimStone.id}`)}
                 </g>
-                {/* confined highlight-retention layer to preserve slab edge lighting */}
-                <g clipPath="url(#clip-perimeterCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.35 }}>
+                <g clipPath="url(#clip-perimeterCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.3 }}>
                   <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
                 </g>
               </>
@@ -310,23 +324,24 @@ export function KitchenPhotoScene({
                 <g clipPath="url(#clip-islandCounter)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
                   {renderStoneElements(islandStone, VB_W, VB_H, `isl-${islandStone.id}`)}
                 </g>
-                <g clipPath="url(#clip-islandCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.35 }}>
+                <g clipPath="url(#clip-islandCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.3 }}>
                   <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
                 </g>
               </>
             )}
             {applyBacksplash && (
-              <g clipPath="url(#clip-backsplash)" style={{ mixBlendMode: "color", opacity: 0.7 }}>
+              <g clipPath="url(#clip-backsplash)" style={{ mixBlendMode: "multiply", opacity: 0.8 }}>
                 <rect x={0} y={0} width={VB_W} height={VB_H} fill={backsplashColor} />
               </g>
             )}
             {applyFlooring && (
-              <g clipPath="url(#clip-flooring)" style={{ mixBlendMode: "color", opacity: 0.7 }}>
+              <g clipPath="url(#clip-flooring)" style={{ mixBlendMode: "multiply", opacity: 0.75 }}>
                 <rect x={0} y={0} width={VB_W} height={VB_H} fill={flooringColor} />
               </g>
             )}
           </>
         )}
+
       </svg>
 
       {pendingRegions.length > 0 && !before && (
