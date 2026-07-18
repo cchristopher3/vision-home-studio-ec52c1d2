@@ -49,59 +49,50 @@ export const REGIONS: RegionDef[] = [
     id: "perimeterUppers",
     label: "Perimeter Uppers",
     debugColor: "rgba(56, 189, 248, 0.55)",
-    // Single continuous upper run between fridge (left) and ovens (right).
-    paths: ["M 160 88 L 1495 88 L 1495 308 L 160 308 Z"],
+    // Between the fridge column (left) and the double-oven column (right).
+    paths: ["M 262 168 L 1330 168 L 1330 360 L 262 360 Z"],
   },
   {
     id: "backsplash",
     label: "Backsplash",
     debugColor: "rgba(244, 114, 182, 0.55)",
-    // Uninterrupted band between uppers and perimeter counter.
-    paths: ["M 160 314 L 1495 314 L 1495 403 L 160 403 Z"],
+    paths: ["M 262 372 L 1330 372 L 1330 480 L 262 480 Z"],
   },
   {
     id: "perimeterCounter",
     label: "Perimeter Counter",
     debugColor: "rgba(163, 230, 53, 0.6)",
-    // Thin slab strip. Stays well clear of backsplash and cabinet faces.
-    paths: ["M 160 408 L 1495 408 L 1495 426 L 160 426 Z"],
+    paths: ["M 262 486 L 1330 486 L 1330 505 L 262 505 Z"],
   },
   {
     id: "perimeterLowers",
     label: "Perimeter Lowers",
     debugColor: "rgba(20, 184, 166, 0.55)",
-    // Only the two side slices of perimeter lowers that remain visible
-    // around the island. Center is hidden behind the island by design.
+    // Only the two side slivers of perimeter lowers remain visible around
+    // the island; the center is blocked by the island by design.
     paths: [
-      "M 160 430 L 270 430 L 270 608 L 160 608 Z",
-      "M 1330 430 L 1495 430 L 1495 608 L 1330 608 Z",
+      "M 262 510 L 338 510 L 338 800 L 262 800 Z",
+      "M 1268 510 L 1330 510 L 1330 800 L 1268 800 Z",
     ],
   },
   {
     id: "islandCounter",
     label: "Island Countertop",
     debugColor: "rgba(250, 204, 21, 0.6)",
-    // Trapezoid: slightly wider at the front edge than at the back.
-    paths: ["M 282 442 L 1318 442 L 1330 512 L 270 512 Z"],
+    // Slightly wider at the back edge than at the base to match the slab.
+    paths: ["M 310 512 L 1300 512 L 1305 582 L 305 582 Z"],
   },
   {
     id: "islandBase",
     label: "Island Base",
     debugColor: "rgba(249, 115, 22, 0.55)",
-    // Front face of the island cabinet base.
-    paths: ["M 274 516 L 1326 516 L 1326 772 L 274 772 Z"],
+    paths: ["M 342 586 L 1264 586 L 1264 800 L 342 800 Z"],
   },
   {
     id: "flooring",
     label: "Flooring",
     debugColor: "rgba(239, 68, 68, 0.55)",
-    // L-shape: full foreground strip, plus visible floor to the left and
-    // right of the island above the foreground band.
-    paths: [
-      "M 0 776 L 1600 776 L 1600 912 L 0 912 Z",
-      "M 0 610 L 272 610 L 272 776 L 0 776 Z",
-      "M 1328 610 L 1600 610 L 1600 776 L 1328 776 Z",
-    ],
+    paths: ["M 0 808 L 1600 808 L 1600 912 L 0 912 Z"],
   },
 ];
 
