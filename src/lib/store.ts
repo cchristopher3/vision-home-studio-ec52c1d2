@@ -91,6 +91,24 @@ export const useStudio = create<StudioState>()(
       setSearchQuery: (q) => set({ searchQuery: q }),
       setStatusFilter: (f) => set({ statusFilter: f }),
     }),
-    { name: "homevision-studio-v2" }
+    {
+      name: "homevision-studio-v3",
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        // Reconcile persisted selections against the current catalog so every
+        // known category always has a valid selection (defaults to included).
+        const validCategoryIds = new Set(
+          [...KITCHEN_CATEGORIES, ...BATHROOM_CATEGORIES].map((c) => c.id),
+        );
+        const cleaned: Record<string, string> = {};
+        for (const [k, v] of Object.entries(state.selections ?? {})) {
+          if (validCategoryIds.has(k)) cleaned[k] = v;
+        }
+        const kDefaults = defaultSelections("kitchen", state.kitchenLayout);
+        const bDefaults = defaultSelections("bathroom");
+        state.selections = { ...kDefaults, ...bDefaults, ...cleaned };
+      },
+    }
+
   )
 );
