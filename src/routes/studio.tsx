@@ -41,6 +41,7 @@ import {
   Search,
   AlertTriangle,
   ChevronDown,
+  CheckCircle2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/studio")({
@@ -151,9 +152,11 @@ function StudioPage() {
   });
 
   const selectedProduct = productById(selections[currentCat.id]);
+  const completedCategories = categories.filter((c) => Boolean(selections[c.id])).length;
+  const progress = Math.round((completedCategories / categories.length) * 100);
 
   return (
-    <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+    <div className="mx-auto max-w-[1500px] px-3 pb-28 pt-4 sm:px-6 sm:pb-10 lg:px-8 lg:py-10">
       {/* HEADER ROW */}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between mb-4">
         <div className="min-w-0">
@@ -180,6 +183,16 @@ function StudioPage() {
         {CATALOG_META.disclaimer}
       </div>
 
+      <div className="mb-4 rounded-xl border border-border bg-card px-4 py-3 lg:hidden">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-medium">Design progress</span>
+          <span className="text-muted-foreground">{completedCategories}/{categories.length} categories</span>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
+          <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+
       {/* KITCHEN LAYOUT PICKER */}
       {room === "kitchen" && (
         <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -203,13 +216,13 @@ function StudioPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr_360px]">
+      <div className="grid gap-4 lg:grid-cols-[220px_1fr_360px] lg:gap-6">
         {/* CATEGORY NAV */}
-        <aside className="lg:sticky lg:top-4 lg:self-start rounded-2xl border border-border bg-card p-3">
+        <aside className="order-2 rounded-2xl border border-border bg-card p-3 lg:order-none lg:sticky lg:top-4 lg:self-start">
           <div className="px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             Categories
           </div>
-          <nav className="mt-2 space-y-3">
+          <nav className="mt-2 flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-3 lg:overflow-visible">
             {grouped.map(([group, cats]) => (
               <CategoryGroup
                 key={group}
@@ -226,12 +239,14 @@ function StudioPage() {
         </aside>
 
         {/* MAIN COLUMN */}
-        <div className="space-y-4 min-w-0">
-          <RoomPreview
-            room={room}
-            selections={selections}
-            className="aspect-[4/3] lg:aspect-[16/10]"
-          />
+        <div className="order-1 space-y-4 min-w-0 lg:order-none">
+          <div className="sticky top-0 z-20 -mx-3 bg-background/95 px-3 pb-2 pt-1 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:p-0">
+            <RoomPreview
+              room={room}
+              selections={selections}
+              className="shadow-sm"
+            />
+          </div>
 
           {issues.length > 0 && (
             <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
@@ -302,7 +317,7 @@ function StudioPage() {
                   No products match the current filters.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
                   {filteredOptions.map((p) => {
                     const compat = isProductCompatible(p, selections, layoutForTotal);
                     return (
@@ -330,7 +345,7 @@ function StudioPage() {
         </div>
 
         {/* SUMMARY COLUMN */}
-        <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+        <aside className="order-3 space-y-4 lg:order-none lg:sticky lg:top-4 lg:self-start">
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
               Running upgrade total
@@ -420,6 +435,24 @@ function StudioPage() {
           </div>
         </aside>
       </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-3 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-lg items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Upgrade total</div>
+            <div className="font-display text-2xl leading-none">{formatMoney(total)}</div>
+          </div>
+          <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+            <DialogTrigger asChild><Button variant="outline" size="sm"><Save className="h-4 w-4" /><span className="sr-only">Save</span></Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Save this design</DialogTitle></DialogHeader>
+              <div className="space-y-2 py-2"><Label htmlFor="mobile-dname">Design name</Label><Input id="mobile-dname" value={designName} onChange={(e) => setDesignName(e.target.value)} /></div>
+              <DialogFooter><Button onClick={handleSave}>Save design</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Link to="/summary"><Button size="sm" className="gap-1.5"><CheckCircle2 className="h-4 w-4" /> Review</Button></Link>
+        </div>
+      </div>
     </div>
   );
 }
@@ -443,10 +476,10 @@ function CategoryGroup({
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <div>
+    <div className="min-w-[13rem] lg:min-w-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-md px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground"
+        className="hidden w-full items-center justify-between rounded-md px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground lg:flex"
       >
         {label}
         <ChevronDown
@@ -454,7 +487,7 @@ function CategoryGroup({
         />
       </button>
       {open && (
-        <ul className="mt-1 space-y-0.5">
+        <ul className="mt-1 flex gap-1 overflow-x-auto lg:block lg:space-y-0.5 lg:overflow-visible">
           {cats.map((c) => {
             const p = productById(selections[c.id]);
             const isActive = c.id === activeId;
@@ -463,7 +496,7 @@ function CategoryGroup({
               <li key={c.id}>
                 <button
                   onClick={() => onPick(c.id)}
-                  className={`grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${
+                className={`grid min-w-[10rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-2 text-left text-xs lg:w-full lg:min-w-0 lg:py-1.5 ${
                     isActive
                       ? "bg-secondary text-foreground"
                       : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
