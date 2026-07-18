@@ -57,6 +57,8 @@ export const useStudio = create<StudioState>()(
       room: "kitchen",
       kitchenLayout: "standard",
       selections: defaultSelections("kitchen", "standard"),
+      perimeterVisualFinishId: DEFAULT_PERIMETER_FINISH_ID,
+      islandVisualFinishId: DEFAULT_ISLAND_FINISH_ID,
       savedDesigns: [],
       compareIds: [null, null],
       activeCategory: null,
@@ -71,6 +73,9 @@ export const useStudio = create<StudioState>()(
         })),
       selectProduct: (category, productId) =>
         set((s) => ({ selections: { ...s.selections, [category]: productId } })),
+      setVisualFinish: (which, id) =>
+        set(() => (which === "perimeter" ? { perimeterVisualFinishId: id } : { islandVisualFinishId: id })),
+
       resetSelections: () => set((s) => ({ selections: defaultSelections(s.room, s.kitchenLayout) })),
       saveDesign: (name) => {
         const s = get();
