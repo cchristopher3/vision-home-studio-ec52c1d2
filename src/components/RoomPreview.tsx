@@ -3,9 +3,12 @@ import { Eye, EyeOff, Layers3 } from "lucide-react";
 import bathClassic from "@/assets/bath-classic.jpg";
 import bathMoody from "@/assets/bath-moody.jpg";
 import kitchenBase from "@/assets/kitchen-true-base.jpg";
-import maskCabinets from "@/assets/kitchen-mask-cabinets.png";
-import maskCountertops from "@/assets/kitchen-mask-countertops.png";
+import maskUpperCabinets from "@/assets/kitchen-mask-upper-cabinets.png";
+import maskLowerCabinets from "@/assets/kitchen-mask-lower-cabinets.png";
 import maskBacksplash from "@/assets/kitchen-mask-backsplash.png";
+import maskPerimeterCounter from "@/assets/kitchen-mask-perimeter-counter.png";
+import maskIslandCounter from "@/assets/kitchen-mask-island-counter.png";
+import maskIslandBase from "@/assets/kitchen-mask-island-base.png";
 import maskFlooring from "@/assets/kitchen-mask-flooring.png";
 import {
   BATHROOM_CATEGORIES,
@@ -15,20 +18,6 @@ import {
   type Product,
   type Room,
 } from "@/lib/catalog";
-
-/**
- * Kitchen preview uses one fixed True Homes photo as the base and applies
- * per-region overlays through CSS `mask-image`. White mask pixels are
- * editable, black pixels protect the photo — so each category modifies
- * only its own footprint, preserving all other selections.
- *
- * NOTE: The bundled kitchen masks are first-pass AI segmentations. They
- * can be swapped for refined production masks later without changing the
- * renderer architecture — the file names / import paths are the only
- * contract this component relies on.
- */
-
-// -------- helpers --------
 
 /** Pull the first hex color out of a CSS gradient / raw color string. */
 function extractHex(swatch: string | undefined): string {
@@ -44,25 +33,53 @@ export function roomImage(room: Room, selections: Record<string, string>) {
 }
 
 // -------- kitchen mask layer definitions --------
+// Each region is independent and non-overlapping.
+
+type BlendMode = React.CSSProperties["mixBlendMode"];
 
 type MaskLayer = {
   id: string;
-  categoryKey: string;
   label: string;
   maskUrl: string;
-  /** Blend mode used for a normal selection. */
-  blend: React.CSSProperties["mixBlendMode"];
-  /** Base opacity for the overlay. */
+  blend: BlendMode;
   opacity: number;
-  /** Diagnostic color used in debug mode. */
   debugColor: string;
+  /** Resolve which product (and its swatch/texture) drives this layer. */
+  resolveProduct: (sel: Record<string, string>) => Product | undefined;
 };
 
+/**
+ * Look up the product that visually drives an "included / match" fall-through:
+ * when Island Finish = "Match Perimeter Cabinets" (id ends in -none) the
+ * island base follows the current Kitchen Cabinets selection. Same idea for
+ * Island Countertop = "Match Perimeter Countertop".
+ */
+function resolveIslandFinish(sel: Record<string, string>): Product | undefined {
+  const explicit = productById(sel.islandFinish);
+  if (explicit && !explicit.id.endsWith("-none")) return explicit;
+  return productById(sel.cabinets);
+}
+function resolveIslandCounter(sel: Record<string, string>): Product | undefined {
+  const explicit = productById(sel.islandCounter);
+  if (explicit && explicit.id !== "isl-ct-match") return explicit;
+  return productById(sel.countertops);
+}
+
 const KITCHEN_MASK_LAYERS: MaskLayer[] = [
-  { id: "flooring",    categoryKey: "flooring",    label: "Flooring",    maskUrl: maskFlooring,    blend: "multiply", opacity: 0.7,  debugColor: "rgba(255, 99, 71, 0.55)" },
-  { id: "cabinets",    categoryKey: "cabinets",    label: "Cabinets",    maskUrl: maskCabinets,    blend: "color",    opacity: 0.9,  debugColor: "rgba(56, 189, 248, 0.55)" },
-  { id: "countertops", categoryKey: "countertops", label: "Countertops", maskUrl: maskCountertops, blend: "multiply", opacity: 0.75, debugColor: "rgba(163, 230, 53, 0.55)" },
-  { id: "backsplash",  categoryKey: "backsplash",  label: "Backsplash",  maskUrl: maskBacksplash,  blend: "soft-light", opacity: 0.9,  debugColor: "rgba(244, 114, 182, 0.55)" },
+  { id: "flooring",         label: "Flooring",         maskUrl: maskFlooring,         blend: "multiply",   opacity: 0.7,  debugColor: "rgba(239, 68, 68, 0.55)",
+    resolveProduct: (s) => productById(s.flooring) },
+  { id: "upperCabinets",    label: "Upper Cabinets",   maskUrl: maskUpperCabinets,    blend: "color",      opacity: 0.9,  debugColor: "rgba(56, 189, 248, 0.55)",
+    resolveProduct: (s) => productById(s.cabinets) },
+  { id: "lowerCabinets",    label: "Lower Cabinets",   maskUrl: maskLowerCabinets,    blend: "color",      opacity: 0.9,  debugColor: "rgba(20, 184, 166, 0.55)",
+    resolveProduct: (s) => productById(s.cabinets) },
+  { id: "perimeterCounter", label: "Perimeter Counter", maskUrl: maskPerimeterCounter, blend: "multiply",   opacity: 0.7,  debugColor: "rgba(163, 230, 53, 0.55)",
+    resolveProduct: (s) => productById(s.countertops) },
+  { id: "backsplash",       label: "Backsplash",       maskUrl: maskBacksplash,       blend: "soft-light", opacity: 0.9,  debugColor: "rgba(244, 114, 182, 0.55)",
+    resolveProduct: (s) => productById(s.backsplash) },
+  { id: "islandBase",       label: "Island Base",      maskUrl: maskIslandBase,       blend: "color",      opacity: 0.9,  debugColor: "rgba(249, 115, 22, 0.55)",
+    resolveProduct: resolveIslandFinish },
+  { id: "islandCounter",    label: "Island Counter",   maskUrl: maskIslandCounter,    blend: "multiply",   opacity: 0.7,  debugColor: "rgba(250, 204, 21, 0.6)",
+    resolveProduct: resolveIslandCounter },
 ];
 
 function MaskedRegion({
@@ -78,22 +95,14 @@ function MaskedRegion({
   debug: boolean;
   onError: (id: string) => void;
 }) {
-  // When user is toggled to Before mode, do not paint any overlay.
   if (showBase) return null;
-
-  // Skip painting the included default so the source photograph shows
-  // through unaltered for the base configuration.
   if (product.included && !debug) return null;
 
   const color = debug ? layer.debugColor : extractHex(product.swatch);
   const texture = !debug && product.textureImageUrl;
   const overlay = !debug && product.overlayImageUrl;
   const visual = product.visual;
-  // The bundled masks are fully opaque PNGs where the editable region is
-  // encoded as WHITE luminance on a BLACK background (alpha = 255 throughout).
-  // CSS mask-image defaults to alpha mode, which would treat the entire
-  // rectangle as visible. Force luminance mode so only the white pixels
-  // receive the overlay.
+
   const maskStyle: React.CSSProperties = {
     position: "absolute",
     inset: 0,
@@ -112,12 +121,12 @@ function MaskedRegion({
     maskRepeat: "no-repeat",
     WebkitMaskPosition: "center",
     maskPosition: "center",
-    // Use luminance (white = show, black = hide) instead of alpha.
     maskMode: "luminance",
     WebkitMaskSourceType: "luminance",
     pointerEvents: "none",
     transition: "background-color 400ms ease, opacity 400ms ease",
   } as React.CSSProperties;
+
   return (
     <div
       key={`${layer.id}-${product.id}-${debug ? "d" : "n"}`}
@@ -134,7 +143,6 @@ function MaskedRegion({
           onError={() => onError(layer.id)}
         />
       )}
-      {/* Preload / detect failure via hidden img. */}
       <img
         src={layer.maskUrl}
         alt=""
@@ -156,11 +164,13 @@ function KitchenPreview({
   const [debug, setDebug] = useState(false);
   const [showBase, setShowBase] = useState(false);
   const [failed, setFailed] = useState<Set<string>>(new Set());
+
   const changedCount = useMemo(
-    () => KITCHEN_MASK_LAYERS.filter((layer) => {
-      const product = productById(selections[layer.categoryKey]);
-      return product && !product.included;
-    }).length,
+    () =>
+      KITCHEN_MASK_LAYERS.filter((layer) => {
+        const product = layer.resolveProduct(selections);
+        return product && !product.included;
+      }).length,
     [selections],
   );
 
@@ -191,8 +201,7 @@ function KitchenPreview({
 
         {KITCHEN_MASK_LAYERS.map((layer) => {
           if (failed.has(layer.id)) return null;
-          const productId = selections[layer.categoryKey];
-          const product = productById(productId);
+          const product = layer.resolveProduct(selections);
           if (!product) return null;
           return (
             <MaskedRegion
@@ -207,7 +216,10 @@ function KitchenPreview({
         })}
 
         {debug && (
-          <div className="pointer-events-none absolute left-3 top-3 flex flex-col gap-1">
+          <div className="pointer-events-none absolute left-3 top-12 flex flex-col gap-1">
+            <div className="rounded-full bg-background/85 px-2 py-1 text-[10px] uppercase tracking-widest text-foreground backdrop-blur">
+              Mask QA — region legend
+            </div>
             {KITCHEN_MASK_LAYERS.map((l) => (
               <div
                 key={l.id}
@@ -247,9 +259,9 @@ function KitchenPreview({
               debug ? "bg-foreground text-background" : "bg-background/85 text-muted-foreground hover:text-foreground"
             }`}
             aria-pressed={debug}
-            title="Toggle mask debug view"
+            title="Internal QA — visualize mask regions"
           >
-            <Layers3 className="h-3 w-3" /> Masks
+            <Layers3 className="h-3 w-3" /> Mask QA
           </button>
         </div>
 
@@ -285,7 +297,7 @@ function KitchenPreview({
   );
 }
 
-// -------- bathroom preview (unchanged behavior) --------
+// -------- bathroom preview (unchanged) --------
 
 type BandLayer = {
   id: string;
@@ -398,8 +410,6 @@ function BathroomPreview({
     </div>
   );
 }
-
-// -------- public API (unchanged signature) --------
 
 export function RoomPreview({
   room,
