@@ -20,6 +20,13 @@ import {
 import { useStudio } from "@/lib/store";
 import { RoomPreview } from "@/components/RoomPreview";
 import { ProductSwatch } from "@/components/ProductSwatch";
+import {
+  COLOR_FAMILIES,
+  RECOMMENDED_FINISH_IDS,
+  STONE_TEXTURES,
+  StoneSwatchThumb,
+} from "@/lib/stoneTextures";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
