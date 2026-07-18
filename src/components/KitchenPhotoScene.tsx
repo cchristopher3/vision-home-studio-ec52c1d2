@@ -1,15 +1,21 @@
-// Photorealistic kitchen preview built on kitchen-scene-v2.jpg.
-// The scene was authored specifically for material swapping: straight-on
-// symmetric composition, uninterrupted upper/lower perimeter cabinet runs,
-// clearly separated perimeter + island countertops, broad backsplash,
-// large flooring plane, and minimal integrated appliances.
+// Kitchen preview built as plain HTML div layers over a photorealistic base
+// scene. No SVG clipPaths, no hand-traced polygons, no flat vector kitchen.
 //
-// Because the camera is nearly orthogonal, every editable region can be
-// expressed with a small number of clean rectangles/polygons whose edges
-// align precisely with the underlying photograph. Every finish is confined
-// to its clip region — no full-frame tint, no shared regions.
+// Approach:
+//  - kitchen-scene-v2.jpg is a straight-on, unobstructed kitchen designed
+//    for finish swapping (continuous perimeter uppers/lowers, centered
+//    rectangular island, separate perimeter + island counters, broad
+//    backsplash, visible floor, no stools/decor).
+//  - Every editable surface is a rectangle in the photo. Each rectangle is
+//    a percentage-positioned <div> layered over the <img>. Cabinets and
+//    other painted finishes use `mix-blend-mode: multiply` so the
+//    photograph's shadows, panel reveals, and hardware highlights show
+//    through the applied color. Counters render procedural stone textures
+//    contained by CSS overflow to their region — nothing bleeds.
+//  - If the base image fails to load, a "Preview unavailable" state is
+//    shown instead of a broken overlay.
 
-import { useMemo } from "react";
+import { useState, type CSSProperties } from "react";
 import kitchenBase from "@/assets/kitchen-scene-v2.jpg";
 import {
   renderStoneElements,
@@ -19,84 +25,42 @@ import {
 } from "@/lib/stoneTextures";
 import { productById } from "@/lib/catalog";
 
-const VB_W = 1600;
-const VB_H = 912;
+const IMG_W = 1600;
+const IMG_H = 912;
 
-// ---------- Region definitions ----------
-// Coordinates are in the photograph's own pixel space (1600x912) and were
-// validated by sampling the actual image. They deliberately under-cover the
-// visible surface rather than bleed onto appliances, walls, or hardware.
+// ---------- Region rectangles (percent of scene) ----------
+// Measured against kitchen-scene-v2.jpg via edge detection. Every region
+// under-covers its surface slightly so nothing bleeds onto appliances,
+// walls, or hardware.
 
-export type RegionId =
-  | "perimeterUppers"
-  | "perimeterLowers"
-  | "islandBase"
-  | "perimeterCounter"
-  | "islandCounter"
-  | "backsplash"
-  | "flooring";
+type RegionBox = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
 
-export interface RegionDef {
-  id: RegionId;
-  label: string;
-  paths: string[];
-  fillRule?: "evenodd" | "nonzero";
-  debugColor: string;
+const REGION: Record<string, RegionBox> = {
+  perimeterUppers:  { left: 16.375, top: 18.42, width: 66.75, height: 21.05 },
+  backsplash:       { left: 16.375, top: 40.79, width: 66.75, height: 11.84 },
+  perimeterCounter: { left: 16.375, top: 52.85, width: 66.75, height: 2.85 },
+  perimeterLowersL: { left: 16.375, top: 55.92, width: 4.75,  height: 31.80 },
+  perimeterLowersR: { left: 79.25,  top: 55.92, width: 3.875, height: 31.80 },
+  islandCounter:    { left: 19.06,  top: 56.14, width: 62.19, height: 7.68 },
+  islandBase:       { left: 21.375, top: 64.25, width: 57.63, height: 23.46 },
+  flooring:         { left: 0,      top: 88.60, width: 100,   height: 11.40 },
+};
+
+function boxStyle(r: RegionBox): CSSProperties {
+  return {
+    position: "absolute",
+    left: `${r.left}%`,
+    top: `${r.top}%`,
+    width: `${r.width}%`,
+    height: `${r.height}%`,
+    pointerEvents: "none",
+  };
 }
-
-export const REGIONS: RegionDef[] = [
-  {
-    id: "perimeterUppers",
-    label: "Perimeter Uppers",
-    debugColor: "rgba(56, 189, 248, 0.55)",
-    // Between the fridge column (left) and the double-oven column (right).
-    paths: ["M 262 168 L 1330 168 L 1330 360 L 262 360 Z"],
-  },
-  {
-    id: "backsplash",
-    label: "Backsplash",
-    debugColor: "rgba(244, 114, 182, 0.55)",
-    paths: ["M 262 372 L 1330 372 L 1330 480 L 262 480 Z"],
-  },
-  {
-    id: "perimeterCounter",
-    label: "Perimeter Counter",
-    debugColor: "rgba(163, 230, 53, 0.6)",
-    paths: ["M 262 486 L 1330 486 L 1330 505 L 262 505 Z"],
-  },
-  {
-    id: "perimeterLowers",
-    label: "Perimeter Lowers",
-    debugColor: "rgba(20, 184, 166, 0.55)",
-    // Only the two side slivers of perimeter lowers remain visible around
-    // the island; the center is blocked by the island by design.
-    paths: [
-      "M 262 510 L 338 510 L 338 800 L 262 800 Z",
-      "M 1268 510 L 1330 510 L 1330 800 L 1268 800 Z",
-    ],
-  },
-  {
-    id: "islandCounter",
-    label: "Island Countertop",
-    debugColor: "rgba(250, 204, 21, 0.6)",
-    // Slightly wider at the back edge than at the base to match the slab.
-    paths: ["M 310 512 L 1300 512 L 1305 582 L 305 582 Z"],
-  },
-  {
-    id: "islandBase",
-    label: "Island Base",
-    debugColor: "rgba(249, 115, 22, 0.55)",
-    paths: ["M 342 586 L 1264 586 L 1264 800 L 342 800 Z"],
-  },
-  {
-    id: "flooring",
-    label: "Flooring",
-    debugColor: "rgba(239, 68, 68, 0.55)",
-    paths: ["M 0 808 L 1600 808 L 1600 912 L 0 912 Z"],
-  },
-];
-
-// ---------- Helpers ----------
 
 function extractHex(swatch: string | undefined): string | undefined {
   if (!swatch) return undefined;
@@ -104,16 +68,102 @@ function extractHex(swatch: string | undefined): string | undefined {
   return m ? m[0] : swatch.startsWith("#") ? swatch : undefined;
 }
 
+// ---------- Region primitives ----------
+
+/** Paint a rectangle with a solid color using a two-pass composite:
+ *  a low-opacity base ensures light selections remain visible against a
+ *  bright photograph, while a multiply layer restores photographic depth
+ *  so panel reveals, shadows, and hardware remain readable. */
+function ColorRegion({
+  box,
+  color,
+  baseOpacity = 0.58,
+  multiplyOpacity = 0.42,
+}: {
+  box: RegionBox;
+  color: string;
+  baseOpacity?: number;
+  multiplyOpacity?: number;
+}) {
+  return (
+    <>
+      <div style={{ ...boxStyle(box), background: color, opacity: baseOpacity }} />
+      <div
+        style={{
+          ...boxStyle(box),
+          background: color,
+          mixBlendMode: "multiply",
+          opacity: multiplyOpacity,
+        }}
+      />
+    </>
+  );
+}
+
+/** Render a procedural stone texture confined to a rectangle. */
+function StoneRegion({
+  box,
+  stone,
+  keyId,
+}: {
+  box: RegionBox;
+  stone: NonNullable<ReturnType<typeof stoneById>>;
+  keyId: string;
+}) {
+  const w = 800;
+  const h = Math.max(120, Math.round((box.height / box.width) * 800));
+  return (
+    <div style={{ ...boxStyle(box), overflow: "hidden" }}>
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="xMidYMid slice"
+        width="100%"
+        height="100%"
+        style={{ display: "block", opacity: 0.95 }}
+        aria-hidden
+      >
+        {renderStoneElements(stone as never, w, h, keyId)}
+      </svg>
+      {/* Restrained highlight preserves ambient sheen from the photo. */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "#ffffff",
+          mixBlendMode: "soft-light",
+          opacity: 0.2,
+          pointerEvents: "none",
+        }}
+      />
+    </div>
+  );
+}
+
+// ---------- Public component ----------
+
+// Kept for backwards compatibility with the previous SVG implementation so
+// import sites that referenced REGIONS still compile. Downstream code no
+// longer surfaces mask/debug UI to buyers.
+export const REGIONS: { id: string; label: string; debugColor: string }[] = [
+  { id: "perimeterUppers",  label: "Perimeter Uppers",   debugColor: "#38bdf8" },
+  { id: "perimeterLowers",  label: "Perimeter Lowers",   debugColor: "#14b8a6" },
+  { id: "islandBase",       label: "Island Base",        debugColor: "#f97316" },
+  { id: "perimeterCounter", label: "Perimeter Counter",  debugColor: "#a3e635" },
+  { id: "islandCounter",    label: "Island Countertop",  debugColor: "#facc15" },
+  { id: "backsplash",       label: "Backsplash",         debugColor: "#f472b6" },
+  { id: "flooring",         label: "Flooring",           debugColor: "#ef4444" },
+];
+
 interface Props {
   selections: Record<string, string>;
   perimeterVisualFinishId?: string;
   islandVisualFinishId?: string;
   /** When true, no finishes are applied; users see the untouched photo. */
   before?: boolean;
-  /** Show translucent debug fills (dev only). */
+  /** Ignored — kept for backwards compatibility. */
   debug?: boolean;
-  /** Per-region debug visibility (dev only). */
-  debugVisible?: Partial<Record<RegionId, boolean>>;
+  /** Ignored — kept for backwards compatibility. */
+  debugVisible?: Partial<Record<string, boolean>>;
 }
 
 export function KitchenPhotoScene({
@@ -121,13 +171,15 @@ export function KitchenPhotoScene({
   perimeterVisualFinishId,
   islandVisualFinishId,
   before,
-  debug,
-  debugVisible,
 }: Props) {
-  // ------------ Product resolution ------------
-  // Cabinets drive every perimeter cabinet surface (uppers + lowers).
-  // Island base follows cabinets unless islandFinish is set to a non-match
-  // upgrade. Perimeter counter texture is independent from island counter.
+  const [imageFailed, setImageFailed] = useState(false);
+
+  // Product resolution.
+  //  - Cabinets drive ALL perimeter cabinet surfaces (uppers + visible lowers).
+  //  - Perimeter Finish (if the user upgraded it) overrides lowers only.
+  //  - Island base follows Cabinets unless Island Finish is set to a real
+  //    upgrade (ids ending with "-none" mean "Match Perimeter Cabinets").
+  //  - Perimeter Countertop and Island Countertop are independent.
   const cabinetsProduct = productById(selections.cabinets);
   const perimFinishExplicit = productById(selections.perimeterFinish);
   const perimeterFinishProduct =
@@ -144,11 +196,11 @@ export function KitchenPhotoScene({
   const backsplashProduct = productById(selections.backsplash);
   const flooringProduct = productById(selections.flooring);
 
+  // Only paint when a real upgrade is selected — an "included" product
+  // means "keep the photo as-is."
   const cabinetColor =
-    cabinetsProduct && !cabinetsProduct.included
-      ? extractHex(cabinetsProduct.swatch)
-      : undefined;
-  const perimeterFinishColor =
+    cabinetsProduct && !cabinetsProduct.included ? extractHex(cabinetsProduct.swatch) : undefined;
+  const lowerColor =
     perimeterFinishProduct && !perimeterFinishProduct.included
       ? extractHex(perimeterFinishProduct.swatch)
       : undefined;
@@ -168,11 +220,10 @@ export function KitchenPhotoScene({
   const perimCounterProduct = productById(selections.countertops);
   const islandCounterExplicit = productById(selections.islandCounter);
 
-  const perimCounterPaint =
+  const paintPerimCounter =
     (perimCounterProduct && !perimCounterProduct.included) ||
-    (perimeterVisualFinishId &&
-      perimeterVisualFinishId !== DEFAULT_PERIMETER_FINISH_ID);
-  const islandCounterPaint =
+    (perimeterVisualFinishId && perimeterVisualFinishId !== DEFAULT_PERIMETER_FINISH_ID);
+  const paintIslandCounter =
     (islandCounterExplicit && islandCounterExplicit.id !== "isl-ct-match") ||
     (islandVisualFinishId && islandVisualFinishId !== DEFAULT_ISLAND_FINISH_ID);
 
@@ -181,178 +232,68 @@ export function KitchenPhotoScene({
   const islandStone =
     stoneById(islandVisualFinishId) ?? stoneById(DEFAULT_ISLAND_FINISH_ID)!;
 
-  const regionById = useMemo(() => {
-    const m: Record<string, RegionDef> = {};
-    for (const r of REGIONS) m[r.id] = r;
-    return m;
-  }, []);
-
-  const visibleRegion = (id: RegionId) => debugVisible?.[id] !== false;
-
-  const applyCabinets = !before && !!cabinetColor;
-  const applyLowers = !before && !!perimeterFinishColor;
-  const applyIslandBase = !before && !!islandBaseColor;
-  const applyPerimCounter = !before && perimCounterPaint;
-  const applyIslandCounter = !before && islandCounterPaint;
-  const applyBacksplash = !before && !!backsplashColor;
-  const applyFlooring = !before && !!flooringColor;
-
-  // ---------- Compositing primitives ----------
-  // Every finish is applied as (a) a guaranteed-visible normal-blend color
-  // layer at controlled opacity and (b) a confined multiply layer that adds
-  // depth. Both layers are clipped to the region's exact shape so nothing
-  // bleeds onto adjacent surfaces. Because the base image is bright and
-  // neutral, multiply darkens correctly for dark selections while the base
-  // opacity ensures light selections remain visible.
-
-  const paintedCabinet = (clipId: string, color: string, key: string) => (
-    <g key={key}>
-      <g clipPath={`url(#${clipId})`} style={{ opacity: 0.62 }}>
-        <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
-      </g>
-      <g
-        clipPath={`url(#${clipId})`}
-        style={{ mixBlendMode: "multiply", opacity: 0.4 }}
-      >
-        <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
-      </g>
-    </g>
-  );
-
-  const paintedSurface = (
-    clipId: string,
-    color: string,
-    key: string,
-    baseOpacity = 0.7,
-  ) => (
-    <g key={key}>
-      <g clipPath={`url(#${clipId})`} style={{ opacity: baseOpacity }}>
-        <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
-      </g>
-      <g
-        clipPath={`url(#${clipId})`}
-        style={{ mixBlendMode: "multiply", opacity: 0.3 }}
-      >
-        <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
-      </g>
-    </g>
-  );
-
-  const stoneSurface = (
-    clipId: string,
-    stone: ReturnType<typeof stoneById> & object,
-    key: string,
-  ) => (
-    <g key={key}>
-      <g clipPath={`url(#${clipId})`} style={{ opacity: 0.94 }}>
-        {renderStoneElements(stone as never, VB_W, VB_H, `${key}-tex`)}
-      </g>
-      {/* Restrained highlight preserves photographic sheen. */}
-      <g
-        clipPath={`url(#${clipId})`}
-        style={{ mixBlendMode: "soft-light", opacity: 0.2 }}
-      >
-        <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
-      </g>
-    </g>
-  );
+  const showOverlays = !before && !imageFailed;
 
   return (
     <div
       className="relative w-full"
-      style={{ aspectRatio: `${VB_W} / ${VB_H}`, isolation: "isolate" }}
+      style={{ aspectRatio: `${IMG_W} / ${IMG_H}`, isolation: "isolate" }}
     >
       <img
         src={kitchenBase}
-        alt="Kitchen photo reference"
-        width={VB_W}
-        height={VB_H}
+        alt="Kitchen preview reference photo"
+        width={IMG_W}
+        height={IMG_H}
         className="absolute inset-0 h-full w-full object-cover"
         loading="eager"
+        onError={() => setImageFailed(true)}
       />
 
-      <svg
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
-        preserveAspectRatio="xMidYMid slice"
-        className="absolute inset-0 h-full w-full transition-opacity duration-200"
-        style={{ opacity: before ? 0 : 1, pointerEvents: "none" }}
-        aria-hidden
-      >
-        <defs>
-          {REGIONS.map((r) => {
-            const rule = r.fillRule ?? "nonzero";
-            return (
-              <clipPath
-                id={`clip-${r.id}`}
-                key={r.id}
-                clipPathUnits="userSpaceOnUse"
-              >
-                {r.paths.map((d, i) => (
-                  <path
-                    key={i}
-                    d={d}
-                    fill="#000"
-                    fillRule={rule}
-                    clipRule={rule}
-                  />
-                ))}
-              </clipPath>
-            );
-          })}
-        </defs>
+      {imageFailed && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted text-sm text-muted-foreground">
+          Preview unavailable
+        </div>
+      )}
 
-        {debug ? (
-          <>
-            {REGIONS.filter((r) => visibleRegion(r.id)).map((r) => {
-              const rule = r.fillRule ?? "nonzero";
-              return (
-                <g key={r.id} fillRule={rule} clipRule={rule}>
-                  {r.paths.map((d, i) => (
-                    <path
-                      key={i}
-                      d={d}
-                      fill={r.debugColor}
-                      fillRule={rule}
-                      clipRule={rule}
-                    />
-                  ))}
-                </g>
-              );
-            })}
-          </>
-        ) : (
-          <>
-            {applyCabinets &&
-              cabinetColor &&
-              paintedCabinet("clip-perimeterUppers", cabinetColor, "uppers")}
-            {applyLowers &&
-              perimeterFinishColor &&
-              paintedCabinet(
-                "clip-perimeterLowers",
-                perimeterFinishColor,
-                "lowers",
-              )}
-            {applyIslandBase &&
-              islandBaseColor &&
-              paintedCabinet("clip-islandBase", islandBaseColor, "islandBase")}
-            {applyPerimCounter &&
-              stoneSurface("clip-perimeterCounter", perimStone, "perimCounter")}
-            {applyIslandCounter &&
-              stoneSurface("clip-islandCounter", islandStone, "islandCounter")}
-            {applyBacksplash &&
-              backsplashColor &&
-              paintedSurface(
-                "clip-backsplash",
-                backsplashColor,
-                "backsplash",
-                0.72,
-              )}
-            {applyFlooring &&
-              flooringColor &&
-              paintedSurface("clip-flooring", flooringColor, "flooring", 0.62)}
-          </>
-        )}
-      </svg>
+      {showOverlays && (
+        <>
+          {cabinetColor && <ColorRegion box={REGION.perimeterUppers} color={cabinetColor} />}
+
+          {lowerColor && (
+            <>
+              <ColorRegion box={REGION.perimeterLowersL} color={lowerColor} />
+              <ColorRegion box={REGION.perimeterLowersR} color={lowerColor} />
+            </>
+          )}
+
+          {islandBaseColor && <ColorRegion box={REGION.islandBase} color={islandBaseColor} />}
+
+          {backsplashColor && (
+            <ColorRegion
+              box={REGION.backsplash}
+              color={backsplashColor}
+              baseOpacity={0.7}
+              multiplyOpacity={0.32}
+            />
+          )}
+
+          {flooringColor && (
+            <ColorRegion
+              box={REGION.flooring}
+              color={flooringColor}
+              baseOpacity={0.55}
+              multiplyOpacity={0.34}
+            />
+          )}
+
+          {paintPerimCounter && (
+            <StoneRegion box={REGION.perimeterCounter} stone={perimStone} keyId="perim-ct" />
+          )}
+          {paintIslandCounter && (
+            <StoneRegion box={REGION.islandCounter} stone={islandStone} keyId="island-ct" />
+          )}
+        </>
+      )}
     </div>
   );
 }
