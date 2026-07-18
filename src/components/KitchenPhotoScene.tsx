@@ -3,7 +3,7 @@
 // Every finish is a controlled color/multiply layer confined to its clip —
 // there is no full-frame tint, and no PNG mask is consulted.
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import kitchenBase from "@/assets/kitchen-true-base.jpg";
 import {
   renderStoneElements,
@@ -12,6 +12,7 @@ import {
   DEFAULT_PERIMETER_FINISH_ID,
 } from "@/lib/stoneTextures";
 import { productById } from "@/lib/catalog";
+
 
 const VB_W = 1320;
 const VB_H = 848;
@@ -242,8 +243,104 @@ export function KitchenPhotoScene({
 
   const pendingRegions = REGIONS.filter((r) => r.pending).map((r) => r.label);
 
+  // Dev-only assertions/logging under debug=1. Never shown to normal buyers.
+  useEffect(() => {
+    if (!debug) return;
+    // eslint-disable-next-line no-console
+    console.log("[KitchenPhotoScene:debug]", {
+      selections,
+      resolved: {
+        cabinets: cabinetsProduct?.id,
+        perimeterFinishSource: perimeterFinishProduct?.id,
+        islandFinishSource: islandFinishProduct?.id,
+        backsplash: backsplashProduct?.id,
+        flooring: flooringProduct?.id,
+        perimCounter: perimCounterProduct?.id,
+        islandCounter: islandCounterExplicit?.id,
+      },
+      colors: {
+        cabinetColor,
+        perimeterFinishColor,
+        islandBaseColor,
+        backsplashColor,
+        flooringColor,
+      },
+      stones: { perim: perimStone.id, island: islandStone.id },
+      visualFinishIds: { perimeterVisualFinishId, islandVisualFinishId },
+      flags: {
+        applyCabinets,
+        applyLowers,
+        applyIslandBase,
+        applyPerimCounter,
+        applyIslandCounter,
+        applyBacksplash,
+        applyFlooring,
+        before: !!before,
+      },
+    });
+  }, [
+    debug, selections, cabinetColor, perimeterFinishColor, islandBaseColor,
+    backsplashColor, flooringColor, perimeterVisualFinishId, islandVisualFinishId,
+    applyCabinets, applyLowers, applyIslandBase, applyPerimCounter,
+    applyIslandCounter, applyBacksplash, applyFlooring, before,
+    cabinetsProduct, perimeterFinishProduct, islandFinishProduct,
+    backsplashProduct, flooringProduct, perimCounterProduct,
+    islandCounterExplicit, perimStone, islandStone,
+  ]);
+
+  // Painted-cabinet compositing: guaranteed-visible normal-blend color at
+  // controlled opacity, then a confined multiply pass for depth. mix-blend-mode
+  // on SVG groups blends only within the SVG's own stacking context (against
+  // transparent), so we CANNOT depend on it as the sole visible layer.
+  const paintedCabinet = (clipId: string, color: string, key: string) => (
+    <g key={key}>
+      <g clipPath={`url(#${clipId})`} style={{ opacity: 0.66 }}>
+        <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
+      </g>
+      <g clipPath={`url(#${clipId})`} style={{ mixBlendMode: "multiply", opacity: 0.35 }}>
+        <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
+      </g>
+    </g>
+  );
+
+  const paintedSurface = (
+    clipId: string,
+    color: string,
+    key: string,
+    baseOpacity = 0.7,
+  ) => (
+    <g key={key}>
+      <g clipPath={`url(#${clipId})`} style={{ opacity: baseOpacity }}>
+        <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
+      </g>
+      <g clipPath={`url(#${clipId})`} style={{ mixBlendMode: "multiply", opacity: 0.28 }}>
+        <rect x={0} y={0} width={VB_W} height={VB_H} fill={color} />
+      </g>
+    </g>
+  );
+
+  const stoneSurface = (
+    clipId: string,
+    stone: ReturnType<typeof stoneById> & object,
+    key: string,
+  ) => (
+    <g key={key}>
+      <g clipPath={`url(#${clipId})`} style={{ opacity: 0.92 }}>
+        {renderStoneElements(stone as never, VB_W, VB_H, `${key}-tex`)}
+      </g>
+      {/* Restrained highlight to preserve photographic sheen — clipped so it
+          NEVER touches other regions and never cancels the finish. */}
+      <g clipPath={`url(#${clipId})`} style={{ mixBlendMode: "soft-light", opacity: 0.22 }}>
+        <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
+      </g>
+    </g>
+  );
+
   return (
-    <div className="relative w-full" style={{ aspectRatio: `${VB_W} / ${VB_H}` }}>
+    <div
+      className="relative w-full"
+      style={{ aspectRatio: `${VB_W} / ${VB_H}`, isolation: "isolate" }}
+    >
       <img
         src={kitchenBase}
         alt="Kitchen photo reference"
@@ -261,12 +358,28 @@ export function KitchenPhotoScene({
         aria-hidden
       >
         <defs>
-          {REGIONS.map((r) => (
-            <clipPath id={`clip-${r.id}`} key={r.id} clipPathUnits="userSpaceOnUse">
-              <RegionPathGroup region={r} />
-            </clipPath>
-          ))}
+          {/* IMPORTANT: <clipPath> children must be shape elements — not a
+              wrapping <g>. Chromium silently ignores paths nested inside a
+              <g> inside <clipPath>, which caused the entire preview to render
+              unclipped/invisible. Emit each path directly here. */}
+          {REGIONS.map((r) => {
+            const rule = r.fillRule ?? "nonzero";
+            return (
+              <clipPath id={`clip-${r.id}`} key={r.id} clipPathUnits="userSpaceOnUse">
+                {r.paths.map((d, i) => (
+                  <path
+                    key={i}
+                    d={d}
+                    fill="#000"
+                    fillRule={rule}
+                    clipRule={rule}
+                  />
+                ))}
+              </clipPath>
+            );
+          })}
         </defs>
+
 
         {debug ? (
           <>
@@ -278,66 +391,20 @@ export function KitchenPhotoScene({
           </>
         ) : (
           <>
-            {applyCabinets && (
-              <>
-                <g clipPath="url(#clip-perimeterUppers)" style={{ mixBlendMode: "multiply", opacity: 0.9 }}>
-                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={cabinetColor} />
-                </g>
-                <g clipPath="url(#clip-perimeterUppers)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
-                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={cabinetColor} />
-                </g>
-              </>
-            )}
-            {applyLowers && (
-              <>
-                <g clipPath="url(#clip-perimeterLowers)" style={{ mixBlendMode: "multiply", opacity: 0.9 }}>
-                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={perimeterFinishColor} />
-                </g>
-                <g clipPath="url(#clip-perimeterLowers)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
-                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={perimeterFinishColor} />
-                </g>
-              </>
-            )}
-            {applyIslandBase && (
-              <>
-                <g clipPath="url(#clip-islandBase)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
-                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={islandBaseColor} />
-                </g>
-                <g clipPath="url(#clip-islandBase)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
-                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={islandBaseColor} />
-                </g>
-              </>
-            )}
-            {applyPerimCounter && (
-              <>
-                <g clipPath="url(#clip-perimeterCounter)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
-                  {renderStoneElements(perimStone, VB_W, VB_H, `perim-${perimStone.id}`)}
-                </g>
-                <g clipPath="url(#clip-perimeterCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.3 }}>
-                  <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
-                </g>
-              </>
-            )}
-            {applyIslandCounter && (
-              <>
-                <g clipPath="url(#clip-islandCounter)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
-                  {renderStoneElements(islandStone, VB_W, VB_H, `isl-${islandStone.id}`)}
-                </g>
-                <g clipPath="url(#clip-islandCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.3 }}>
-                  <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
-                </g>
-              </>
-            )}
-            {applyBacksplash && (
-              <g clipPath="url(#clip-backsplash)" style={{ mixBlendMode: "multiply", opacity: 0.8 }}>
-                <rect x={0} y={0} width={VB_W} height={VB_H} fill={backsplashColor} />
-              </g>
-            )}
-            {applyFlooring && (
-              <g clipPath="url(#clip-flooring)" style={{ mixBlendMode: "multiply", opacity: 0.75 }}>
-                <rect x={0} y={0} width={VB_W} height={VB_H} fill={flooringColor} />
-              </g>
-            )}
+            {applyCabinets && cabinetColor &&
+              paintedCabinet("clip-perimeterUppers", cabinetColor, "uppers")}
+            {applyLowers && perimeterFinishColor &&
+              paintedCabinet("clip-perimeterLowers", perimeterFinishColor, "lowers")}
+            {applyIslandBase && islandBaseColor &&
+              paintedCabinet("clip-islandBase", islandBaseColor, "islandBase")}
+            {applyPerimCounter &&
+              stoneSurface("clip-perimeterCounter", perimStone, "perimCounter")}
+            {applyIslandCounter &&
+              stoneSurface("clip-islandCounter", islandStone, "islandCounter")}
+            {applyBacksplash && backsplashColor &&
+              paintedSurface("clip-backsplash", backsplashColor, "backsplash", 0.72)}
+            {applyFlooring && flooringColor &&
+              paintedSurface("clip-flooring", flooringColor, "flooring", 0.62)}
           </>
         )}
 
@@ -353,14 +420,16 @@ export function KitchenPhotoScene({
 }
 
 function RegionPathGroup({ region, fill }: { region: RegionDef; fill?: string }) {
+  const rule = region.fillRule ?? "nonzero";
   return (
-    <g fillRule={region.fillRule}>
+    <g fillRule={rule} clipRule={rule}>
       {region.paths.map((d, i) => (
-        <path key={i} d={d} fill={fill ?? "#000"} />
+        <path key={i} d={d} fill={fill ?? "#000"} fillRule={rule} clipRule={rule} />
       ))}
     </g>
   );
 }
+
 
 // ---------- Debug overlap check (dev aid) ----------
 
