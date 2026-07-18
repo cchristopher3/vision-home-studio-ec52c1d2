@@ -1,15 +1,8 @@
-import { useMemo, useState } from "react";
-import { Eye, Layers3, Sparkles, Camera } from "lucide-react";
+import { useState } from "react";
+import { Eye, Layers3 } from "lucide-react";
 import bathClassic from "@/assets/bath-classic.jpg";
 import bathMoody from "@/assets/bath-moody.jpg";
 import kitchenBase from "@/assets/kitchen-true-base.jpg";
-import maskUpperCabinets from "@/assets/kitchen-mask-upper-cabinets.png";
-import maskLowerCabinets from "@/assets/kitchen-mask-lower-cabinets.png";
-import maskBacksplash from "@/assets/kitchen-mask-backsplash.png";
-import maskPerimeterCounter from "@/assets/kitchen-mask-perimeter-counter.png";
-import maskIslandCounter from "@/assets/kitchen-mask-island-counter.png";
-import maskIslandBase from "@/assets/kitchen-mask-island-base.png";
-import maskFlooring from "@/assets/kitchen-mask-flooring.png";
 import {
   BATHROOM_CATEGORIES,
   KITCHEN_CATEGORIES,
@@ -18,145 +11,13 @@ import {
   type Product,
   type Room,
 } from "@/lib/catalog";
-import { VectorKitchen } from "@/components/VectorKitchen";
+import { KitchenPhotoScene, REGIONS } from "@/components/KitchenPhotoScene";
 import { useStudio } from "@/lib/store";
-
-type PreviewView = "material" | "photo" | "before";
-
-
-/** Pull the first hex color out of a CSS gradient / raw color string. */
-function extractHex(swatch: string | undefined): string {
-  if (!swatch) return "#cccccc";
-  const m = swatch.match(/#[0-9a-fA-F]{3,8}/);
-  return m ? m[0] : swatch.startsWith("#") ? swatch : "#cccccc";
-}
 
 export function roomImage(room: Room, selections: Record<string, string>) {
   if (room === "kitchen") return kitchenBase;
   const tone = dominantTone(room, selections);
   return tone === "dark" ? bathMoody : bathClassic;
-}
-
-// -------- kitchen mask layer definitions --------
-// Each region is independent and non-overlapping.
-
-type BlendMode = React.CSSProperties["mixBlendMode"];
-
-type MaskLayer = {
-  id: string;
-  label: string;
-  maskUrl: string;
-  blend: BlendMode;
-  opacity: number;
-  debugColor: string;
-  /** Resolve which product (and its swatch/texture) drives this layer. */
-  resolveProduct: (sel: Record<string, string>) => Product | undefined;
-};
-
-/**
- * Look up the product that visually drives an "included / match" fall-through:
- * when Island Finish = "Match Perimeter Cabinets" (id ends in -none) the
- * island base follows the current Kitchen Cabinets selection. Same idea for
- * Island Countertop = "Match Perimeter Countertop".
- */
-function resolveIslandFinish(sel: Record<string, string>): Product | undefined {
-  const explicit = productById(sel.islandFinish);
-  if (explicit && !explicit.id.endsWith("-none")) return explicit;
-  return productById(sel.cabinets);
-}
-function resolveIslandCounter(sel: Record<string, string>): Product | undefined {
-  const explicit = productById(sel.islandCounter);
-  if (explicit && explicit.id !== "isl-ct-match") return explicit;
-  return productById(sel.countertops);
-}
-
-const KITCHEN_MASK_LAYERS: MaskLayer[] = [
-  { id: "flooring",         label: "Flooring",         maskUrl: maskFlooring,         blend: "multiply",   opacity: 0.7,  debugColor: "rgba(239, 68, 68, 0.55)",
-    resolveProduct: (s) => productById(s.flooring) },
-  { id: "upperCabinets",    label: "Upper Cabinets",   maskUrl: maskUpperCabinets,    blend: "color",      opacity: 0.9,  debugColor: "rgba(56, 189, 248, 0.55)",
-    resolveProduct: (s) => productById(s.cabinets) },
-  { id: "lowerCabinets",    label: "Lower Cabinets",   maskUrl: maskLowerCabinets,    blend: "color",      opacity: 0.9,  debugColor: "rgba(20, 184, 166, 0.55)",
-    resolveProduct: (s) => productById(s.cabinets) },
-  { id: "perimeterCounter", label: "Perimeter Counter", maskUrl: maskPerimeterCounter, blend: "multiply",   opacity: 0.7,  debugColor: "rgba(163, 230, 53, 0.55)",
-    resolveProduct: (s) => productById(s.countertops) },
-  { id: "backsplash",       label: "Backsplash",       maskUrl: maskBacksplash,       blend: "soft-light", opacity: 0.9,  debugColor: "rgba(244, 114, 182, 0.55)",
-    resolveProduct: (s) => productById(s.backsplash) },
-  { id: "islandBase",       label: "Island Base",      maskUrl: maskIslandBase,       blend: "color",      opacity: 0.9,  debugColor: "rgba(249, 115, 22, 0.55)",
-    resolveProduct: resolveIslandFinish },
-  { id: "islandCounter",    label: "Island Counter",   maskUrl: maskIslandCounter,    blend: "multiply",   opacity: 0.7,  debugColor: "rgba(250, 204, 21, 0.6)",
-    resolveProduct: resolveIslandCounter },
-];
-
-function MaskedRegion({
-  layer,
-  product,
-  showBase,
-  debug,
-  onError,
-}: {
-  layer: MaskLayer;
-  product: Product;
-  showBase: boolean;
-  debug: boolean;
-  onError: (id: string) => void;
-}) {
-  if (showBase) return null;
-  if (product.included && !debug) return null;
-
-  const color = debug ? layer.debugColor : extractHex(product.swatch);
-  const texture = !debug && product.textureImageUrl;
-  const overlay = !debug && product.overlayImageUrl;
-  const visual = product.visual;
-
-  const maskStyle: React.CSSProperties = {
-    position: "absolute",
-    inset: 0,
-    backgroundColor: color,
-    backgroundImage: texture ? `url(${texture})` : undefined,
-    backgroundRepeat: texture ? "repeat" : undefined,
-    backgroundSize: texture ? `${Math.max(25, (visual?.scale ?? 1) * 100)}px auto` : undefined,
-    transform: visual?.rotation ? `rotate(${visual.rotation}deg) scale(1.04)` : undefined,
-    mixBlendMode: debug ? "normal" : visual?.blendMode ?? layer.blend,
-    opacity: debug ? 1 : visual?.opacity ?? layer.opacity,
-    WebkitMaskImage: `url(${layer.maskUrl})`,
-    maskImage: `url(${layer.maskUrl})`,
-    WebkitMaskSize: "100% 100%",
-    maskSize: "100% 100%",
-    WebkitMaskRepeat: "no-repeat",
-    maskRepeat: "no-repeat",
-    WebkitMaskPosition: "center",
-    maskPosition: "center",
-    maskMode: "luminance",
-    WebkitMaskSourceType: "luminance",
-    pointerEvents: "none",
-    transition: "background-color 400ms ease, opacity 400ms ease",
-  } as React.CSSProperties;
-
-  return (
-    <div
-      key={`${layer.id}-${product.id}-${debug ? "d" : "n"}`}
-      style={maskStyle}
-      className="animate-fade-in"
-      data-layer={layer.id}
-    >
-      {overlay && (
-        <img
-          src={overlay}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 h-full w-full object-fill"
-          onError={() => onError(layer.id)}
-        />
-      )}
-      <img
-        src={layer.maskUrl}
-        alt=""
-        aria-hidden
-        onError={() => onError(layer.id)}
-        className="hidden"
-      />
-    </div>
-  );
 }
 
 function KitchenPreview({
@@ -172,28 +33,13 @@ function KitchenPreview({
   enableMaskQA?: boolean;
   changeLabel?: string;
 }) {
+  const [showBase, setShowBase] = useState(false);
   const [debug, setDebug] = useState(false);
-  const [view, setView] = useState<PreviewView>("material");
-  const [failed, setFailed] = useState<Set<string>>(new Set());
+  const [debugVisible, setDebugVisible] = useState<Record<string, boolean>>(
+    Object.fromEntries(REGIONS.map((r) => [r.id, true])),
+  );
   const perimeterVisualFinishId = useStudio((s) => s.perimeterVisualFinishId);
   const islandVisualFinishId = useStudio((s) => s.islandVisualFinishId);
-
-  const changedCount = useMemo(
-    () =>
-      KITCHEN_MASK_LAYERS.filter((layer) => {
-        const product = layer.resolveProduct(selections);
-        return product && !product.included;
-      }).length,
-    [selections],
-  );
-
-  const markFailed = (id: string) =>
-    setFailed((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
 
   const chips = KITCHEN_CATEGORIES.map((c) => {
     const p = productById(selections[c.id]);
@@ -201,104 +47,89 @@ function KitchenPreview({
     return { catLabel: c.label, product: p };
   }).filter((x): x is { catLabel: string; product: Product } => !!x);
 
-  const showBase = view === "before";
-  const isMaterial = view === "material";
+  const toggleAll = (v: boolean) =>
+    setDebugVisible(Object.fromEntries(REGIONS.map((r) => [r.id, v])));
 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-border bg-muted ${className}`}>
-      <div className="relative w-full" style={{ aspectRatio: isMaterial ? "1200 / 760" : "1320 / 848" }}>
-        {isMaterial ? (
-          <div className="absolute inset-0 animate-fade-in bg-[#f5efe3]">
-            <VectorKitchen
-              selections={selections}
-              perimeterVisualFinishId={perimeterVisualFinishId}
-              islandVisualFinishId={islandVisualFinishId}
-            />
-          </div>
-        ) : (
-          <>
-            <img
-              src={kitchenBase}
-              alt="Kitchen photo reference"
-              className="absolute inset-0 h-full w-full object-cover"
-              width={1320}
-              height={848}
-            />
-            {KITCHEN_MASK_LAYERS.map((layer) => {
-              if (failed.has(layer.id)) return null;
-              const product = layer.resolveProduct(selections);
-              if (!product) return null;
-              return (
-                <MaskedRegion
-                  key={layer.id}
-                  layer={layer}
-                  product={product}
-                  showBase={showBase}
-                  debug={debug}
-                  onError={markFailed}
-                />
-              );
-            })}
-          </>
-        )}
-
-        {debug && !isMaterial && (
-          <div className="pointer-events-none absolute left-3 top-12 flex flex-col gap-1">
-            <div className="rounded-full bg-background/85 px-2 py-1 text-[10px] uppercase tracking-widest text-foreground backdrop-blur">
-              Mask QA — region legend
-            </div>
-            {KITCHEN_MASK_LAYERS.map((l) => (
-              <div
-                key={l.id}
-                className="flex items-center gap-2 rounded-full bg-background/85 px-2 py-1 text-[10px] uppercase tracking-widest text-foreground backdrop-blur"
-              >
-                <span className="h-3 w-3 rounded-sm" style={{ background: l.debugColor }} />
-                {l.label}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {failed.size > 0 && !isMaterial && (
-          <div className="pointer-events-none absolute left-3 bottom-3 rounded-md bg-background/85 px-2 py-1 text-[10px] text-muted-foreground backdrop-blur">
-            Preview layer unavailable
-          </div>
-        )}
+      <div className="relative w-full">
+        <KitchenPhotoScene
+          selections={selections}
+          perimeterVisualFinishId={perimeterVisualFinishId}
+          islandVisualFinishId={islandVisualFinishId}
+          before={showBase}
+          debug={enableMaskQA && debug}
+          debugVisible={debugVisible}
+        />
 
         <div className="absolute left-3 top-3 max-w-[70%] rounded-full bg-background/90 px-3 py-1.5 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
           <span className="truncate">
-            {changeLabel
-              ? changeLabel
-              : changedCount
-              ? `${changedCount} visual change${changedCount === 1 ? "" : "s"}`
-              : "Included design"}
+            {showBase ? "Before · untouched photograph" : changeLabel ?? "Photorealistic preview · illustrative finishes"}
           </span>
         </div>
 
-        <div className="absolute right-3 top-3 flex gap-1">
-          <ViewButton active={view === "material"} onClick={() => setView("material")} icon={<Sparkles className="h-3 w-3" />} label="Material" />
-          <ViewButton active={view === "photo"} onClick={() => setView("photo")} icon={<Camera className="h-3 w-3" />} label="Photo" />
-          <ViewButton active={view === "before"} onClick={() => setView("before")} icon={<Eye className="h-3 w-3" />} label="Before" />
+        <div className="absolute right-3 top-3 flex gap-1.5">
+          <button
+            onClick={() => setShowBase(false)}
+            aria-pressed={!showBase}
+            className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition ${
+              !showBase ? "bg-foreground text-background" : "bg-background/90 text-foreground hover:bg-background"
+            }`}
+          >
+            <Eye className="h-3 w-3" /> Selections
+          </button>
+          <button
+            onClick={() => setShowBase(true)}
+            aria-pressed={showBase}
+            className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition ${
+              showBase ? "bg-foreground text-background" : "bg-background/90 text-foreground hover:bg-background"
+            }`}
+          >
+            Before
+          </button>
           {enableMaskQA && (
             <button
               onClick={() => setDebug((v) => !v)}
+              aria-pressed={debug}
+              title="Internal QA — visualize traced regions"
               className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[10px] uppercase tracking-widest backdrop-blur transition ${
                 debug ? "bg-foreground text-background" : "bg-background/85 text-muted-foreground hover:text-foreground"
               }`}
-              aria-pressed={debug}
-              title="Internal QA — visualize mask regions"
             >
-              <Layers3 className="h-3 w-3" /> Mask QA
+              <Layers3 className="h-3 w-3" /> Region QA
             </button>
           )}
         </div>
 
-        <div className="pointer-events-none absolute bottom-3 right-3 hidden rounded-full bg-background/85 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur sm:block">
-          {view === "before" ? "Before · base finishes" : view === "photo" ? "Photo reference · masked layers" : "Material preview · vector scene"}
-        </div>
+        {enableMaskQA && debug && (
+          <div className="pointer-events-auto absolute left-3 top-14 flex flex-col gap-1 rounded-md bg-background/90 p-2 text-[10px] backdrop-blur">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="font-semibold uppercase tracking-widest">Region QA</span>
+              <div className="flex gap-1">
+                <button className="rounded border border-border px-1.5 py-0.5" onClick={() => toggleAll(true)}>
+                  All
+                </button>
+                <button className="rounded border border-border px-1.5 py-0.5" onClick={() => toggleAll(false)}>
+                  None
+                </button>
+              </div>
+            </div>
+            {REGIONS.map((r) => (
+              <label key={r.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!debugVisible[r.id]}
+                  onChange={(e) =>
+                    setDebugVisible((prev) => ({ ...prev, [r.id]: e.target.checked }))
+                  }
+                />
+                <span className="h-3 w-3 rounded-sm" style={{ background: r.debugColor }} />
+                {r.label}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
-
-
 
       {!hideChips && chips.length > 0 && (
         <div className="border-t border-border bg-card/80 p-3">
@@ -323,35 +154,11 @@ function KitchenPreview({
           </div>
         </div>
       )}
-
     </div>
   );
 }
 
-function ViewButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition ${
-        active ? "bg-foreground text-background" : "bg-background/90 text-foreground hover:bg-background"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
+
 
 
 // -------- bathroom preview (unchanged) --------
