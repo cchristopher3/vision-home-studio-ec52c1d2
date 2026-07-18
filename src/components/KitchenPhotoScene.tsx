@@ -3,7 +3,7 @@
 // Every finish is a controlled color/multiply layer confined to its clip —
 // there is no full-frame tint, and no PNG mask is consulted.
 
-import React, { useMemo, useState } from "react";
+import { useMemo } from "react";
 import kitchenBase from "@/assets/kitchen-true-base.jpg";
 import {
   renderStoneElements,
