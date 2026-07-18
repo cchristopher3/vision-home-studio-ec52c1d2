@@ -286,7 +286,7 @@ function KitchenPreview({
         </div>
       </div>
 
-      {chips.length > 0 && (
+      {!hideChips && chips.length > 0 && (
         <div className="border-t border-border bg-card/80 p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
             Your selections
@@ -309,6 +309,7 @@ function KitchenPreview({
           </div>
         </div>
       )}
+
     </div>
   );
 }
