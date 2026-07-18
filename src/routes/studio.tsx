@@ -20,6 +20,13 @@ import {
 import { useStudio } from "@/lib/store";
 import { RoomPreview } from "@/components/RoomPreview";
 import { ProductSwatch } from "@/components/ProductSwatch";
+import {
+  COLOR_FAMILIES,
+  RECOMMENDED_FINISH_IDS,
+  STONE_TEXTURES,
+  StoneSwatchThumb,
+} from "@/lib/stoneTextures";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -674,6 +681,98 @@ function GroupPicker({
           );
         })}
       </div>
+
+      {group.id === "countertops" && (
+        <VisualFinishPicker
+          which={activeCat === "islandCounter" ? "island" : "perimeter"}
+          compact={compact}
+        />
+      )}
     </div>
   );
 }
+
+// ---------- Visual finish picker ----------
+
+function VisualFinishPicker({
+  which,
+  compact,
+}: {
+  which: "perimeter" | "island";
+  compact?: boolean;
+}) {
+  const perimeter = useStudio((s) => s.perimeterVisualFinishId);
+  const island = useStudio((s) => s.islandVisualFinishId);
+  const setVisualFinish = useStudio((s) => s.setVisualFinish);
+  const currentId = which === "perimeter" ? perimeter : island;
+  const [family, setFamily] = useState<string>("all");
+  const [showAll, setShowAll] = useState(false);
+  const filtered = STONE_TEXTURES.filter(
+    (s) => family === "all" || s.colorFamily === family,
+  );
+  const shown = showAll
+    ? filtered
+    : filtered.filter((s) => RECOMMENDED_FINISH_IDS.includes(s.id)).slice(0, 6);
+
+  return (
+    <div className="mt-2 rounded-xl border border-dashed border-border bg-secondary/30 p-3">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <div className="text-[11px] font-medium">
+          Visual finish · {which === "perimeter" ? "Perimeter countertop" : "Island countertop"}
+        </div>
+        <div className="text-[10px] text-muted-foreground">
+          Illustrative texture only — does not change price.
+        </div>
+      </div>
+      <div className="mb-2 flex flex-wrap gap-1">
+        {COLOR_FAMILIES.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFamily(f.id)}
+            className={`rounded-full border px-2 py-0.5 text-[10px] transition ${
+              family === f.id
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-background text-muted-foreground hover:text-foreground"
+            }`}
+            aria-pressed={family === f.id}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <div className={`grid gap-2 ${compact ? "grid-cols-3" : "grid-cols-3 md:grid-cols-4"}`}>
+        {shown.map((s) => {
+          const selected = currentId === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setVisualFinish(which, s.id)}
+              className={`group relative overflow-hidden rounded-lg border text-left transition ${
+                selected ? "border-foreground ring-2 ring-foreground/20" : "border-border hover:border-foreground/40"
+              }`}
+              aria-pressed={selected}
+              title={s.name}
+            >
+              <StoneSwatchThumb def={s} size={72} className="block h-14 w-full object-cover" />
+              <div className="px-1.5 py-1">
+                <div className="truncate text-[10px] font-medium leading-tight">{s.name}</div>
+                <div className="text-[9px] uppercase tracking-widest text-muted-foreground">
+                  {s.family}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {filtered.length > shown.length && !showAll && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="mt-2 text-[11px] font-medium text-foreground/80 underline underline-offset-2 hover:text-foreground"
+        >
+          View all {filtered.length} finishes
+        </button>
+      )}
+    </div>
+  );
+}
+

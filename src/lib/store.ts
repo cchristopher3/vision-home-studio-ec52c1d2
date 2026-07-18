@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { BATHROOM_CATEGORIES, KITCHEN_CATEGORIES, defaultSelections, type KitchenLayout, type Room } from "./catalog";
+import { DEFAULT_ISLAND_FINISH_ID, DEFAULT_PERIMETER_FINISH_ID } from "./stoneTextures";
+
 
 
 export type SelectionFilter = "all" | "included" | "upgrade" | "optional";
@@ -24,6 +26,8 @@ interface StudioState {
   room: Room;
   kitchenLayout: KitchenLayout;
   selections: Record<string, string>;
+  perimeterVisualFinishId: string;
+  islandVisualFinishId: string;
   savedDesigns: SavedDesign[];
   compareIds: [string | null, string | null];
   activeCategory: string | null;
@@ -33,6 +37,7 @@ interface StudioState {
   setRoom: (room: Room) => void;
   setKitchenLayout: (layout: KitchenLayout) => void;
   selectProduct: (category: string, productId: string) => void;
+  setVisualFinish: (which: "perimeter" | "island", id: string) => void;
   resetSelections: () => void;
   saveDesign: (name: string) => SavedDesign;
   deleteDesign: (id: string) => void;
@@ -41,6 +46,7 @@ interface StudioState {
   setSearchQuery: (q: string) => void;
   setStatusFilter: (f: SelectionFilter) => void;
 }
+
 
 export const useStudio = create<StudioState>()(
   persist(
@@ -51,6 +57,8 @@ export const useStudio = create<StudioState>()(
       room: "kitchen",
       kitchenLayout: "standard",
       selections: defaultSelections("kitchen", "standard"),
+      perimeterVisualFinishId: DEFAULT_PERIMETER_FINISH_ID,
+      islandVisualFinishId: DEFAULT_ISLAND_FINISH_ID,
       savedDesigns: [],
       compareIds: [null, null],
       activeCategory: null,
@@ -65,6 +73,9 @@ export const useStudio = create<StudioState>()(
         })),
       selectProduct: (category, productId) =>
         set((s) => ({ selections: { ...s.selections, [category]: productId } })),
+      setVisualFinish: (which, id) =>
+        set(() => (which === "perimeter" ? { perimeterVisualFinishId: id } : { islandVisualFinishId: id })),
+
       resetSelections: () => set((s) => ({ selections: defaultSelections(s.room, s.kitchenLayout) })),
       saveDesign: (name) => {
         const s = get();
@@ -107,6 +118,9 @@ export const useStudio = create<StudioState>()(
         const kDefaults = defaultSelections("kitchen", state.kitchenLayout);
         const bDefaults = defaultSelections("bathroom");
         state.selections = { ...kDefaults, ...bDefaults, ...cleaned };
+        if (!state.perimeterVisualFinishId) state.perimeterVisualFinishId = DEFAULT_PERIMETER_FINISH_ID;
+        if (!state.islandVisualFinishId) state.islandVisualFinishId = DEFAULT_ISLAND_FINISH_ID;
+
       },
     }
 
