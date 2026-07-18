@@ -358,12 +358,28 @@ export function KitchenPhotoScene({
         aria-hidden
       >
         <defs>
-          {REGIONS.map((r) => (
-            <clipPath id={`clip-${r.id}`} key={r.id} clipPathUnits="userSpaceOnUse">
-              <RegionPathGroup region={r} />
-            </clipPath>
-          ))}
+          {/* IMPORTANT: <clipPath> children must be shape elements — not a
+              wrapping <g>. Chromium silently ignores paths nested inside a
+              <g> inside <clipPath>, which caused the entire preview to render
+              unclipped/invisible. Emit each path directly here. */}
+          {REGIONS.map((r) => {
+            const rule = r.fillRule ?? "nonzero";
+            return (
+              <clipPath id={`clip-${r.id}`} key={r.id} clipPathUnits="userSpaceOnUse">
+                {r.paths.map((d, i) => (
+                  <path
+                    key={i}
+                    d={d}
+                    fill="#000"
+                    fillRule={rule}
+                    clipRule={rule}
+                  />
+                ))}
+              </clipPath>
+            );
+          })}
         </defs>
+
 
         {debug ? (
           <>
