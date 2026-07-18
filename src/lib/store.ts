@@ -118,6 +118,9 @@ export const useStudio = create<StudioState>()(
         const kDefaults = defaultSelections("kitchen", state.kitchenLayout);
         const bDefaults = defaultSelections("bathroom");
         state.selections = { ...kDefaults, ...bDefaults, ...cleaned };
+        if (!state.perimeterVisualFinishId) state.perimeterVisualFinishId = DEFAULT_PERIMETER_FINISH_ID;
+        if (!state.islandVisualFinishId) state.islandVisualFinishId = DEFAULT_ISLAND_FINISH_ID;
+
       },
     }
 
