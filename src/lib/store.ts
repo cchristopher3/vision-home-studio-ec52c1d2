@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { BATHROOM_CATEGORIES, KITCHEN_CATEGORIES, defaultSelections, type KitchenLayout, type Room } from "./catalog";
+import { DEFAULT_ISLAND_FINISH_ID, DEFAULT_PERIMETER_FINISH_ID } from "./stoneTextures";
+
 
 
 export type SelectionFilter = "all" | "included" | "upgrade" | "optional";
