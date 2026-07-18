@@ -157,9 +157,15 @@ function MaskedRegion({
 function KitchenPreview({
   selections,
   className,
+  hideChips,
+  enableMaskQA,
+  changeLabel,
 }: {
   selections: Record<string, string>;
   className: string;
+  hideChips?: boolean;
+  enableMaskQA?: boolean;
+  changeLabel?: string;
 }) {
   const [debug, setDebug] = useState(false);
   const [showBase, setShowBase] = useState(false);
