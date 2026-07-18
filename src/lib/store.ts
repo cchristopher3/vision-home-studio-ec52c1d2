@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { defaultSelections, type KitchenLayout, type Room } from "./catalog";
+import { BATHROOM_CATEGORIES, KITCHEN_CATEGORIES, defaultSelections, type KitchenLayout, type Room } from "./catalog";
+
 
 export type SelectionFilter = "all" | "included" | "upgrade" | "optional";
 
