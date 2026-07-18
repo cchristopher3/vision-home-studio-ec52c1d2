@@ -67,28 +67,21 @@ export function ProductSwatch({
             </span>
           )}
         </div>
-        <div className="p-3">
+        <div className="p-2.5">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-foreground">{product.name}</div>
-              <div className="truncate text-[11px] text-muted-foreground">
-                {product.code ? `${product.code} · ` : ""}
-                {product.manufacturer}
-              </div>
-              {product.configuration && (
-                <div className="truncate text-[11px] text-muted-foreground">{product.configuration}</div>
-              )}
+              <div className="truncate text-[13px] font-medium text-foreground">{product.name}</div>
             </div>
-            <div className="text-right text-sm shrink-0">
+            <div className="text-right text-[12px] shrink-0">
               {product.included ? (
-                <span className="text-muted-foreground">—</span>
+                <span className="text-muted-foreground">Included</span>
               ) : (
                 <span className="text-foreground">+{formatMoney(product.price)}</span>
               )}
             </div>
           </div>
           {(product.restrictions || disabledReason) && (
-            <div className="mt-2 rounded-md bg-secondary/60 px-2 py-1 text-[10px] text-muted-foreground">
+            <div className="mt-1.5 rounded-md bg-secondary/60 px-2 py-1 text-[10px] text-muted-foreground line-clamp-2">
               {disabledReason ?? product.restrictions}
             </div>
           )}
