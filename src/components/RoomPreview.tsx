@@ -361,9 +361,11 @@ function BathBandNode({ layer, productId, swatch }: { layer: BandLayer; productI
 function BathroomPreview({
   selections,
   className,
+  hideChips,
 }: {
   selections: Record<string, string>;
   className: string;
+  hideChips?: boolean;
 }) {
   const tone = dominantTone("bathroom", selections);
   const img = tone === "dark" ? bathMoody : bathClassic;
