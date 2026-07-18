@@ -26,6 +26,8 @@ interface StudioState {
   room: Room;
   kitchenLayout: KitchenLayout;
   selections: Record<string, string>;
+  perimeterVisualFinishId: string;
+  islandVisualFinishId: string;
   savedDesigns: SavedDesign[];
   compareIds: [string | null, string | null];
   activeCategory: string | null;
@@ -35,6 +37,7 @@ interface StudioState {
   setRoom: (room: Room) => void;
   setKitchenLayout: (layout: KitchenLayout) => void;
   selectProduct: (category: string, productId: string) => void;
+  setVisualFinish: (which: "perimeter" | "island", id: string) => void;
   resetSelections: () => void;
   saveDesign: (name: string) => SavedDesign;
   deleteDesign: (id: string) => void;
@@ -43,6 +46,7 @@ interface StudioState {
   setSearchQuery: (q: string) => void;
   setStatusFilter: (f: SelectionFilter) => void;
 }
+
 
 export const useStudio = create<StudioState>()(
   persist(
