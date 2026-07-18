@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Eye, EyeOff, Layers3 } from "lucide-react";
+import { Eye, Layers3, Sparkles, Camera } from "lucide-react";
 import bathClassic from "@/assets/bath-classic.jpg";
 import bathMoody from "@/assets/bath-moody.jpg";
 import kitchenBase from "@/assets/kitchen-true-base.jpg";
@@ -18,6 +18,11 @@ import {
   type Product,
   type Room,
 } from "@/lib/catalog";
+import { VectorKitchen } from "@/components/VectorKitchen";
+import { useStudio } from "@/lib/store";
+
+type PreviewView = "material" | "photo" | "before";
+
 
 /** Pull the first hex color out of a CSS gradient / raw color string. */
 function extractHex(swatch: string | undefined): string {
