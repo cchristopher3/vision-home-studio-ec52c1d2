@@ -77,11 +77,11 @@ export const REGIONS: RegionDef[] = [
     debugColor: "rgba(20, 184, 166, 0.55)",
     paths: [
       // Back-wall lowers left of range — doors/drawers below counter
-      "M 300 495 L 445 490 L 445 615 L 300 620 Z",
-      "M 445 490 L 590 485 L 590 615 L 445 615 Z",
+      "M 305 505 L 445 500 L 445 615 L 305 620 Z",
+      "M 445 500 L 585 495 L 585 615 L 445 615 Z",
       // Back-wall lowers right of range
-      "M 735 490 L 870 486 L 870 615 L 735 618 Z",
-      "M 870 486 L 1000 482 L 1000 615 L 870 615 Z",
+      "M 740 500 L 870 495 L 870 615 L 740 618 Z",
+      "M 870 495 L 985 492 L 985 615 L 870 615 Z",
     ],
     fillRule: "nonzero",
   },
@@ -92,7 +92,7 @@ export const REGIONS: RegionDef[] = [
     // Right portion of island wood base only — leaves the stool zone (left front)
     // uncovered so stool legs/seats remain untouched.
     paths: [
-      "M 440 640 L 615 605 L 610 800 L 440 815 Z",
+      "M 455 650 L 605 615 L 600 795 L 455 810 Z",
     ],
     fillRule: "nonzero",
   },
@@ -100,20 +100,19 @@ export const REGIONS: RegionDef[] = [
     id: "perimeterCounter",
     label: "Perimeter Counter",
     debugColor: "rgba(163, 230, 53, 0.55)",
-    // Back-leg slim edge + full right-leg slab (with sink cutout via even-odd).
+    // Back-leg slim edge + right-leg slab (with sink cutout via even-odd).
     paths: [
       // Back leg top surface strip (thin band showing on top of lowers)
       "M 285 442 L 605 435 L 605 490 L 285 492 Z",
-      "M 730 435 L 1055 428 L 1055 480 L 730 482 Z",
-      // Right leg slab (from back-right corner forward to front-right)
-      "M 1000 430 L 1320 460 L 1320 848 L 855 848 L 855 620 L 1000 618 Z",
+      "M 730 435 L 990 428 L 990 480 L 730 482 Z",
+      // Right leg slab — bounded so it never covers cabinets or floor.
+      "M 985 428 L 1320 460 L 1320 715 L 860 700 L 860 615 L 985 615 Z",
       // Sink cutout on the right leg
-      "M 1015 555 L 1235 555 L 1235 700 L 1015 700 Z",
-      // Faucet base cutout (small)
-      "M 1075 505 L 1170 505 L 1170 560 L 1075 560 Z",
+      "M 1015 555 L 1230 555 L 1230 680 L 1015 680 Z",
     ],
     fillRule: "evenodd",
   },
+
   {
     id: "islandCounter",
     label: "Island Counter",
