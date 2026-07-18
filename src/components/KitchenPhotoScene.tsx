@@ -57,18 +57,17 @@ export const REGIONS: RegionDef[] = [
     label: "Perimeter Uppers",
     debugColor: "rgba(56, 189, 248, 0.55)",
     paths: [
-      // Back wall — left of microwave (three door faces)
-      "M 300 220 L 460 212 L 460 340 L 300 356 Z",
-      "M 460 214 L 585 210 L 585 338 L 460 340 Z",
-      // Above microwave (small stack)
-      "M 590 208 L 735 205 L 735 338 L 590 338 Z",
-      // Back wall — right of microwave
-      "M 745 205 L 880 200 L 880 388 L 745 390 Z",
-      "M 880 200 L 1010 196 L 1010 386 L 880 388 Z",
-      "M 1010 196 L 1090 194 L 1090 384 L 1010 386 Z",
-      // Left wall pantry uppers (angled toward camera)
-      "M 105 218 L 210 210 L 210 345 L 105 360 Z",
-      "M 210 210 L 285 205 L 285 340 L 210 345 Z",
+      // Pantry uppers (left wall, angled)
+      "M 90 220 L 230 210 L 230 370 L 90 380 Z",
+      // Back-wall uppers, left of microwave — two door groups
+      "M 290 275 L 445 260 L 445 405 L 290 410 Z",
+      "M 445 260 L 585 250 L 585 405 L 445 405 Z",
+      // Above-microwave narrow bridge (skips the microwave face)
+      "M 610 232 L 720 228 L 720 300 L 610 300 Z",
+      // Back-wall uppers, right of microwave — several door groups
+      "M 735 232 L 870 224 L 870 400 L 735 402 Z",
+      "M 870 224 L 995 220 L 995 400 L 870 400 Z",
+      "M 995 220 L 1105 218 L 1105 400 L 995 400 Z",
     ],
     fillRule: "nonzero",
   },
@@ -77,15 +76,12 @@ export const REGIONS: RegionDef[] = [
     label: "Perimeter Lowers",
     debugColor: "rgba(20, 184, 166, 0.55)",
     paths: [
-      // Back wall — left of range (door + drawer faces)
-      "M 300 500 L 430 496 L 430 700 L 300 708 Z",
-      "M 430 496 L 585 492 L 585 700 L 430 700 Z",
-      // Back wall — right of range
-      "M 745 492 L 880 490 L 880 700 L 745 702 Z",
-      "M 880 490 L 1000 488 L 1000 700 L 880 700 Z",
-      // Right-leg lowers (below sink run, but not the sink itself)
-      "M 1010 640 L 1160 640 L 1160 800 L 1010 800 Z",
-      "M 1160 640 L 1290 640 L 1290 810 L 1160 800 Z",
+      // Back-wall lowers left of range — doors/drawers below counter
+      "M 305 505 L 445 500 L 445 615 L 305 620 Z",
+      "M 445 500 L 585 495 L 585 615 L 445 615 Z",
+      // Back-wall lowers right of range
+      "M 740 500 L 870 495 L 870 615 L 740 618 Z",
+      "M 870 495 L 985 492 L 985 615 L 870 615 Z",
     ],
     fillRule: "nonzero",
   },
@@ -93,9 +89,10 @@ export const REGIONS: RegionDef[] = [
     id: "islandBase",
     label: "Island Base",
     debugColor: "rgba(249, 115, 22, 0.55)",
-    // Island wood block, right-side portion (avoids stools on the left/front).
+    // Right portion of island wood base only — leaves the stool zone (left front)
+    // uncovered so stool legs/seats remain untouched.
     paths: [
-      "M 355 660 L 680 588 L 655 800 L 335 820 Z",
+      "M 455 650 L 605 615 L 600 795 L 455 810 Z",
     ],
     fillRule: "nonzero",
   },
@@ -103,28 +100,26 @@ export const REGIONS: RegionDef[] = [
     id: "perimeterCounter",
     label: "Perimeter Counter",
     debugColor: "rgba(163, 230, 53, 0.55)",
-    // Back leg + right leg of the L, with range/sink cutouts via even-odd.
+    // Back-leg slim edge + right-leg slab (with sink cutout via even-odd).
     paths: [
-      // Back leg (from left wall counter across to back-right corner)
-      "M 100 448 L 295 442 L 585 438 L 735 438 L 1085 434 L 1085 495 L 295 500 L 100 502 Z",
-      // Right leg coming forward (corner → front-right)
-      "M 1075 434 L 1320 460 L 1320 640 L 1075 640 Z",
-      // Range cutout (even-odd removes this rectangle)
-      "M 588 438 L 732 438 L 732 470 L 588 470 Z",
-      // Sink cutout on right leg
-      "M 1085 552 L 1290 552 L 1290 630 L 1085 630 Z",
+      // Back leg top surface strip (thin band showing on top of lowers)
+      "M 285 442 L 605 435 L 605 490 L 285 492 Z",
+      "M 730 435 L 990 428 L 990 480 L 730 482 Z",
+      // Right leg slab — bounded so it never covers cabinets or floor.
+      "M 985 428 L 1320 460 L 1320 715 L 860 700 L 860 615 L 985 615 Z",
+      // Sink cutout on the right leg
+      "M 1015 555 L 1230 555 L 1230 680 L 1015 680 Z",
     ],
     fillRule: "evenodd",
   },
+
   {
     id: "islandCounter",
     label: "Island Counter",
     debugColor: "rgba(250, 204, 21, 0.6)",
+    // Marble slab top + front edge band; leaves stools untouched.
     paths: [
-      // Slab top surface (perspective quad)
-      "M 285 528 L 655 498 L 685 588 L 280 655 Z",
-      // Slab front edge (thin band)
-      "M 280 655 L 685 588 L 682 610 L 278 675 Z",
+      "M 245 610 L 605 455 L 630 585 L 240 640 Z",
     ],
     fillRule: "nonzero",
   },
@@ -132,12 +127,10 @@ export const REGIONS: RegionDef[] = [
     id: "backsplash",
     label: "Backsplash",
     debugColor: "rgba(244, 114, 182, 0.55)",
+    // Narrow band between uppers-bottom and counter-top, split around microwave.
     paths: [
-      // Back wall band between uppers and counter — split around microwave.
-      "M 300 360 L 585 342 L 585 435 L 300 442 Z",
-      "M 745 392 L 1080 388 L 1080 434 L 745 434 Z",
-      // Right leg backsplash strip on side wall behind sink faucet
-      "M 1090 400 L 1290 420 L 1290 460 L 1090 440 Z",
+      "M 295 410 L 585 405 L 585 440 L 295 445 Z",
+      "M 735 405 L 1050 400 L 1050 432 L 735 435 Z",
     ],
     fillRule: "nonzero",
   },
@@ -145,20 +138,18 @@ export const REGIONS: RegionDef[] = [
     id: "flooring",
     label: "Flooring",
     debugColor: "rgba(239, 68, 68, 0.55)",
-    // Bottom band, but shy of stools on the far left and the island block.
+    // Open floor area between island (right side) and right-leg cabinets.
+    // Left-front stool zone is deliberately excluded.
     paths: [
-      // Left strip (behind/around stools — kept narrow to avoid stool feet)
-      "M 0 780 L 105 770 L 105 848 L 0 848 Z",
-      // Front strip beneath island, between stools and island wood
-      "M 420 810 L 660 795 L 660 848 L 400 848 Z",
-      // Right open floor between island and right-leg cabinets
-      "M 655 720 L 1010 710 L 1010 848 L 655 848 Z",
-      // Far-right strip beneath right-leg cabinets' toe kick shadow
-      "M 1010 810 L 1320 810 L 1320 848 L 1010 848 Z",
+      // Central floor between island and right cabinets
+      "M 620 700 L 855 700 L 855 848 L 620 848 Z",
+      // Narrow far-left strip near doorway (avoids stools)
+      "M 0 760 L 90 755 L 90 848 L 0 848 Z",
     ],
     fillRule: "nonzero",
   },
 ];
+
 
 // ---------- Overlay component ----------
 
@@ -288,27 +279,41 @@ export function KitchenPhotoScene({
         ) : (
           <>
             {applyCabinets && (
-              <g clipPath="url(#clip-perimeterUppers)" style={{ mixBlendMode: "color", opacity: 0.85 }}>
-                <rect x={0} y={0} width={VB_W} height={VB_H} fill={cabinetColor} />
-              </g>
+              <>
+                <g clipPath="url(#clip-perimeterUppers)" style={{ mixBlendMode: "multiply", opacity: 0.9 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={cabinetColor} />
+                </g>
+                <g clipPath="url(#clip-perimeterUppers)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={cabinetColor} />
+                </g>
+              </>
             )}
             {applyLowers && (
-              <g clipPath="url(#clip-perimeterLowers)" style={{ mixBlendMode: "color", opacity: 0.85 }}>
-                <rect x={0} y={0} width={VB_W} height={VB_H} fill={perimeterFinishColor} />
-              </g>
+              <>
+                <g clipPath="url(#clip-perimeterLowers)" style={{ mixBlendMode: "multiply", opacity: 0.9 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={perimeterFinishColor} />
+                </g>
+                <g clipPath="url(#clip-perimeterLowers)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={perimeterFinishColor} />
+                </g>
+              </>
             )}
             {applyIslandBase && (
-              <g clipPath="url(#clip-islandBase)" style={{ mixBlendMode: "color", opacity: 0.9 }}>
-                <rect x={0} y={0} width={VB_W} height={VB_H} fill={islandBaseColor} />
-              </g>
+              <>
+                <g clipPath="url(#clip-islandBase)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={islandBaseColor} />
+                </g>
+                <g clipPath="url(#clip-islandBase)" style={{ mixBlendMode: "color", opacity: 0.35 }}>
+                  <rect x={0} y={0} width={VB_W} height={VB_H} fill={islandBaseColor} />
+                </g>
+              </>
             )}
             {applyPerimCounter && (
               <>
                 <g clipPath="url(#clip-perimeterCounter)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
                   {renderStoneElements(perimStone, VB_W, VB_H, `perim-${perimStone.id}`)}
                 </g>
-                {/* confined highlight-retention layer to preserve slab edge lighting */}
-                <g clipPath="url(#clip-perimeterCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.35 }}>
+                <g clipPath="url(#clip-perimeterCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.3 }}>
                   <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
                 </g>
               </>
@@ -318,23 +323,24 @@ export function KitchenPhotoScene({
                 <g clipPath="url(#clip-islandCounter)" style={{ mixBlendMode: "multiply", opacity: 0.85 }}>
                   {renderStoneElements(islandStone, VB_W, VB_H, `isl-${islandStone.id}`)}
                 </g>
-                <g clipPath="url(#clip-islandCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.35 }}>
+                <g clipPath="url(#clip-islandCounter)" style={{ mixBlendMode: "soft-light", opacity: 0.3 }}>
                   <rect x={0} y={0} width={VB_W} height={VB_H} fill="#ffffff" />
                 </g>
               </>
             )}
             {applyBacksplash && (
-              <g clipPath="url(#clip-backsplash)" style={{ mixBlendMode: "color", opacity: 0.7 }}>
+              <g clipPath="url(#clip-backsplash)" style={{ mixBlendMode: "multiply", opacity: 0.8 }}>
                 <rect x={0} y={0} width={VB_W} height={VB_H} fill={backsplashColor} />
               </g>
             )}
             {applyFlooring && (
-              <g clipPath="url(#clip-flooring)" style={{ mixBlendMode: "color", opacity: 0.7 }}>
+              <g clipPath="url(#clip-flooring)" style={{ mixBlendMode: "multiply", opacity: 0.75 }}>
                 <rect x={0} y={0} width={VB_W} height={VB_H} fill={flooringColor} />
               </g>
             )}
           </>
         )}
+
       </svg>
 
       {pendingRegions.length > 0 && !before && (
