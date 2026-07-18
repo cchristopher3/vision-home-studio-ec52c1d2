@@ -328,6 +328,32 @@ function KitchenPreview({
   );
 }
 
+function ViewButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition ${
+        active ? "bg-foreground text-background" : "bg-background/90 text-foreground hover:bg-background"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+
 // -------- bathroom preview (unchanged) --------
 
 type BandLayer = {
