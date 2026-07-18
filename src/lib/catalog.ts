@@ -197,6 +197,45 @@ const countertopProducts: Product[] = [1, 2, 3, 4, 5, 6].map<Product>((lvl, i) =
   };
 });
 
+// Island countertop — independent selection. "Match" dynamically follows perimeter.
+const islandCounterProducts: Product[] = [
+  {
+    id: "isl-ct-match", code: "ISL-CT-00", category: "islandCounter", room: "kitchen",
+    name: "Match Perimeter Countertop", configuration: "Follows perimeter selection",
+    manufacturer: "Approved Stone Supplier", finish: "Match",
+    status: "included", included: true, price: 0, tone: "light",
+    swatch: cabSwatch("#f2efe9", "#d6d2c8"),
+    effectiveDate: CATALOG_META.effectiveDate, active: true,
+    imagePlaceholder: "island-counter-match.jpg",
+    builderNotes: "Island slab visually matches the current perimeter countertop selection.",
+  },
+  ...([2, 3, 4, 5, 6] as const).map<Product>((lvl) => {
+    const prices: Record<number, number> = { 2: 900, 3: 1450, 4: 1950, 5: 3600, 6: 4800 };
+    const i = lvl - 1;
+    return {
+      id: `isl-ct-l${lvl}`,
+      code: `ISL-CT-L${lvl}`,
+      category: "islandCounter",
+      room: "kitchen",
+      name: `Island Countertop — Level ${lvl}`,
+      configuration: `Level ${lvl}`,
+      manufacturer: "Approved Stone Supplier",
+      finish: lvl >= 5 ? "Polished / Suede" : "Polished",
+      status: "upgrade",
+      included: false,
+      price: prices[lvl],
+      tone: ctPalette[i][2],
+      swatch: cabSwatch(ctPalette[i][0], ctPalette[i][1]),
+      effectiveDate: CATALOG_META.effectiveDate,
+      active: true,
+      imagePlaceholder: `island-counter-l${lvl}.jpg`,
+      builderNotes: "Independent from perimeter — allows two-tone stone design.",
+    };
+  }),
+];
+
+
+
 const sinkProducts: Product[] = ([
   { key: "ss-under", name: "Stainless Steel Undermount", price: 0, status: "included", swatch: ["#dfe3e7", "#9aa0a6"], tone: "light", restrictions: undefined },
   { key: "6040-under", name: "60/40 Undermount Sink", price: 200, status: "upgrade", swatch: ["#d1d5d9", "#8a8f94"], tone: "light" },
