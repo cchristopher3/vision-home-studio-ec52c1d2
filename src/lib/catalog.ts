@@ -83,7 +83,8 @@ export interface CategoryDef {
 export const KITCHEN_CATEGORIES: CategoryDef[] = [
   { id: "backsplash", label: "Kitchen Backsplash", group: "surfaces" },
   { id: "cabinets", label: "Kitchen Cabinets", group: "cabinetry" },
-  { id: "countertops", label: "Kitchen Countertops", group: "surfaces" },
+  { id: "countertops", label: "Kitchen Countertops (Perimeter)", group: "surfaces" },
+  { id: "islandCounter", label: "Island Countertop", group: "island" },
   { id: "flooring", label: "Kitchen Flooring", group: "surfaces" },
   { id: "sink", label: "Kitchen Sink", group: "fixtures" },
   { id: "faucet", label: "Kitchen Faucet", group: "fixtures" },
