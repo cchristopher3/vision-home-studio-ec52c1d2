@@ -53,7 +53,7 @@ function KitchenPreview({
 
         <div className="absolute left-3 top-3 max-w-[70%] rounded-full bg-background/90 px-3 py-1.5 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
           <span className="truncate">
-            {showBase ? "Before · untouched photograph" : changeLabel ?? "Photorealistic preview · illustrative finishes"}
+            {showBase ? "Before · curated base scene" : changeLabel ?? "Illustrative curated preview"}
           </span>
         </div>
 
