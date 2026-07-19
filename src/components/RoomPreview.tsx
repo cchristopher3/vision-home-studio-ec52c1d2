@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Eye } from "lucide-react";
 import bathClassic from "@/assets/bath-classic.jpg";
 import bathMoody from "@/assets/bath-moody.jpg";
-import kitchenBase from "@/assets/kitchen-scene-v2.jpg";
+import kitchenBase from "@/assets/kitchen-scene-A.jpg";
 import {
   BATHROOM_CATEGORIES,
   KITCHEN_CATEGORIES,
@@ -53,7 +53,7 @@ function KitchenPreview({
 
         <div className="absolute left-3 top-3 max-w-[70%] rounded-full bg-background/90 px-3 py-1.5 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
           <span className="truncate">
-            {showBase ? "Before · untouched photograph" : changeLabel ?? "Photorealistic preview · illustrative finishes"}
+            {showBase ? "Before · curated base scene" : changeLabel ?? "Illustrative curated preview"}
           </span>
         </div>
 
