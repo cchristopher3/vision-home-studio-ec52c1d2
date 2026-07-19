@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Eye } from "lucide-react";
 import bathClassic from "@/assets/bath-classic.jpg";
 import bathMoody from "@/assets/bath-moody.jpg";
-import kitchenBase from "@/assets/kitchen-scene-v2.jpg";
+import kitchenBase from "@/assets/kitchen-scene-A.jpg";
 import {
   BATHROOM_CATEGORIES,
   KITCHEN_CATEGORIES,
