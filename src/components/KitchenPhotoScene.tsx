@@ -85,16 +85,27 @@ export function KitchenPhotoScene({ selections, before }: Props) {
   const target: SceneKey = before ? "A" : scene;
 
   // Manage a two-layer crossfade so the outgoing image stays mounted for
-  // 200ms while the new image fades in on top of it.
+  // 200ms while the new image fades in on top of it. `previous` renders
+  // underneath at full opacity; `current` starts at 0 and animates to 1,
+  // producing a real crossfade in both directions (including toggling
+  // Before ↔ Selections when they resolve to different scenes).
   const [current, setCurrent] = useState<SceneKey>(target);
   const [previous, setPrevious] = useState<SceneKey | null>(null);
+  const [fadedIn, setFadedIn] = useState(true);
 
   useEffect(() => {
     if (target === current) return;
     setPrevious(current);
     setCurrent(target);
-    const t = setTimeout(() => setPrevious(null), 220);
-    return () => clearTimeout(t);
+    setFadedIn(false);
+    // Kick the opacity transition on the next frame so the browser records
+    // the initial 0 opacity before animating to 1.
+    const raf = requestAnimationFrame(() => setFadedIn(true));
+    const t = setTimeout(() => setPrevious(null), 260);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+    };
   }, [target, current]);
 
   const [failed, setFailed] = useState(false);
@@ -103,6 +114,8 @@ export function KitchenPhotoScene({ selections, before }: Props) {
     <div
       className="relative w-full"
       style={{ aspectRatio: "1600 / 912", isolation: "isolate" }}
+      data-scene={current}
+      data-before={before ? "true" : "false"}
     >
       {previous && (
         <img
@@ -118,7 +131,7 @@ export function KitchenPhotoScene({ selections, before }: Props) {
         src={SCENES[current].src}
         alt={`Curated kitchen preview — ${SCENES[current].label}`}
         className="absolute inset-0 h-full w-full object-cover transition-opacity duration-200 ease-out"
-        style={{ opacity: failed ? 0 : 1 }}
+        style={{ opacity: failed ? 0 : fadedIn ? 1 : 0 }}
         onError={() => setFailed(true)}
       />
 
@@ -128,16 +141,11 @@ export function KitchenPhotoScene({ selections, before }: Props) {
         </div>
       )}
 
-      {!failed && (
+      {!failed && !before && !exact && (
         <div className="pointer-events-none absolute inset-x-3 bottom-3 flex flex-col items-start gap-1">
-          <span className="rounded-full bg-background/90 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur">
-            Illustrative curated preview
+          <span className="rounded-full bg-background/90 px-3 py-1 text-[10px] text-muted-foreground backdrop-blur">
+            Closest available visual — selections and pricing remain exact.
           </span>
-          {!before && !exact && (
-            <span className="rounded-full bg-background/90 px-3 py-1 text-[10px] text-muted-foreground backdrop-blur">
-              Closest available visual — selections and pricing remain exact.
-            </span>
-          )}
         </div>
       )}
     </div>
