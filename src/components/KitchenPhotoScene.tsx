@@ -73,7 +73,7 @@ export function pickScene(selections: Record<string, string>): {
   }
   // Natural/warm wood cabinets, warm granite, or a contrasting dark island → C.
   if (cab === "warm" || perim === "warm" || island === "dark" || island === "warm") {
-    const exact = cab === "warm" && perim !== "dark";
+    const exact = cab === "warm" && perim === "warm";
     return { scene: "C", exact };
   }
   // Default: light everywhere → A (exact match).
